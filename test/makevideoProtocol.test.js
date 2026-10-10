@@ -13,7 +13,7 @@ import {
   isLegalTransition,
   makevideoFingerprint,
   verifyReceiptEventChain
-} from '../lib/makevideoProtocol.js';
+} from '../src/makevideoProtocol.js';
 
 test('canonical serialization is stable across key order and unicode equivalents', () => {
   const a = { z: 2, label: 'Cafe\u0301', nested: { b: 2, a: 1 } };
