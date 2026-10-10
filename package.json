@@ -1,0 +1,12 @@
+{
+  "name": "@jussandco/make-video-protocol",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone evidence-bound MAKEVIDEO v2.1 protocol, not a renderer",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "test:protocol": "node --test test/makevideoProtocol.test.js"
+  },
+  "engines": { "node": ">=20" }
+}
