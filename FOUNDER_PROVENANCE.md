@@ -24,3 +24,11 @@ Before merge: reconcile against current source, inspect diff and checks, run foc
 - Intended production chain includes scene planning, shot continuity, rendering, audio, QA and release receipts.
 - Conversation-derived architecture treats LEEVIZE (visual/artwork) and Sync Avenue (temporal/motion) as peer engines, not interchangeable labels. Their current code, ownership and integration remain UNKNOWN until source inspection.
 - Rendered video and real-path playback must be inspected before production claims.
+
+## Cross-repository source reconciliation (2026-10-12)
+- VERIFIED: `jussray/StoryEngine/story-engine/lib/makevideoProtocol.js` and this repository's `src/makevideoProtocol.js` returned the identical Git blob SHA `e5c8a61f9fe6ac29fc308f26a945714cbd090106` on direct connector reads. This proves byte-identical protocol source at the inspected refs, not package integration or a passing test.
+- VERIFIED: StoryEngine contains `story-engine/lib/openVideoRenderer.js` (observed blob `54bceeff707a6a1a722b4da170ed29f58a983da3`), `story-engine/test/openVideoRenderer.test.js` (observed blob `c34d249706b982492340b04e6b548392f907a7c7`), and a Playwright workflow at `.github/workflows/story-video-engine-playwright.yml`. These are source-presence observations only.
+- VERIFIED: The MAKEVIDEO export branch `export/make-video-contract` was 15 commits ahead of `main` and zero behind at the observed comparison; PR #1 remained open with a documentation-only, do-not-merge-until-verified description. This comparison is not a current-head lease.
+- VERIFIED: The local StoryEngine adapter contract checks protocol and adapter versions and explicitly returns `authorityGranted: false`. It is not a renderer or publishing integration.
+- NOT VERIFIED: exact current PR head, CI pass/fail, live ComfyUI/GPU availability, actual media bytes, playback, YouTube channel identity, upload authorization, or deployment.
+- NEXT GATE: obtain exact-head CI and StoryEngine focused-test results, inspect a real rendered media receipt and playback, then separately verify release authorization before merging or publishing. Preserve StoryEngine's renderer ownership; do not duplicate it in MAKEVIDEO.
