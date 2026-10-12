@@ -28,3 +28,14 @@
 
 ## Rollback
 Delete the dedicated export branch; do not delete or alter the ULTRATHINK source.
+
+## Updated evidence and adversarial gate (2026-10-12)
+This section supersedes older **time-bound** statements above; historical observations remain intact.
+- VERIFIED: Export branch was 16 commits ahead of `main`, zero behind, on comparison; this is not a lease on the current head.
+- VERIFIED: MAKEVIDEO protocol CI run `38311838036` completed successfully at commit `851dfb7af577298f25b8644eaf17d97641ae32a2`, with `npm test` successful on Node 22 and 24. This verifies the standalone contract test suite only.
+- VERIFIED: StoryEngine and MAKEVIDEO protocol modules share exact Git blob SHA `e5c8a61f9fe6ac29fc308f26a945714cbd090106` at inspected refs. StoryEngine retains the ComfyUI renderer, and its `.github/workflows/story-video-engine-playwright.yml` includes Node tests, browser checks, and video-composition tests; presence is not execution proof.
+- ATTACK: CI success must not be promoted into `MEDIA_VALIDATED`, `VERIFIED`, `PUBLISH_APPROVED`, or `PUBLISHED` state. Protocol fingerprints and continuity cookies are not authority tokens.
+- ATTACK: A Playwright run with mocked GPU responses is not proof of actual rendered bytes or playback. Require media hashes, codec/probe validation, inspected frames/audio/captions, source/rights checks, and an exact-job receipt.
+- ATTACK: The previous audit's claim that no PR existed is superseded: PR #1 was observed open with a do-not-merge gate. No verified current PR mergeability or production deployment is claimed.
+- BLOCKED: full source capability parity, StoryEngine exact-head regression evidence, GPU render, release authorization, and YouTube publishing remain unverified.
+- NEXT: Reconcile the original ULTRATHINK source modules and all dependencies before calling this a full export. Keep PR #1 unmerged until functional and authorization gates are independently verified.
