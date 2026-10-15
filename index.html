@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#100c23" />
+  <meta name="description" content="MakeVideo by Juss & Co. Build storyboards, preview your shots, and export a silent animatic." />
+  <title>MakeVideo · Juss & Co.</title>
+  <link rel="stylesheet" href="./assets/styles.css" />
+  <script type="module" src="./assets/app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Studio navigation">
+      <a class="brand" href="./" aria-label="MakeVideo home"><span class="brand-mark">▶</span><span>MAKE<span class="brand-light">VIDEO</span><small>JUSS & CO. STUDIO</small></span></a>
+      <div class="sidebar-label">WORKSPACE</div>
+      <div class="nav-item active"><span>▧</span> Storyboard <span class="nav-pill">LIVE</span></div>
+      <div class="sidebar-note"><span class="note-icon">✦</span><strong>Build the story first.</strong><p>Arrange shots, shape your visual direction, and export a real silent video animatic in your browser.</p></div>
+      <div class="sidebar-bottom"><span class="status-dot"></span> Browser studio · Local files only <small>AI rendering and publishing are not connected.</small></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><div class="crumb">Juss & Co. <span>/</span> Creative Studio <span>/</span> <strong>MakeVideo</strong></div><span class="saving" id="save-status" role="status">Saved locally</span></header>
+      <div class="workspace">
+        <div class="heading"><div><div class="eyebrow">YOUR PRODUCTION WORKSPACE</div><h1>Make something <em>move.</em></h1><p class="subhead">From first idea to moving storyboard. Your story stays in your hands.</p></div><div class="actions"><button class="button ghost" id="import-btn">↥ Import</button><button class="button ghost" id="export-json">↧ Storyboard JSON</button><button class="button accent" id="export-webm">▶ Export animatic</button><input type="file" accept=".json,application/json" id="import-file" hidden /></div></div>
+        <div class="project-info"><div class="input-group title-group"><label for="project-title">PROJECT TITLE</label><input id="project-title" maxlength="100" placeholder="Name your film" /></div><div class="input-group small-group"><label for="project-format">ASPECT RATIO</label><select id="project-format"><option>16:9</option><option>9:16</option><option>1:1</option></select></div><div class="project-stat"><span id="shot-count">1 SHOT</span><strong id="total-duration">00:04</strong><span>TOTAL RUNTIME</span></div></div>
+        <div class="studio-grid">
+          <section class="preview-panel" aria-label="Storyboard preview"><div class="section-head"><h2>Preview</h2><span class="panel-tag">STORYBOARD ANIMATIC</span></div><div class="canvas-stage"><canvas id="preview" width="960" height="540" aria-label="Animated preview of your current shot"></canvas><div id="stage-badge" class="stage-badge">SHOT 01</div></div><div class="player"><button id="play-btn" class="round-play" aria-label="Play storyboard">▶</button><span id="player-time" class="timecode">00:00 / 00:04</span><input aria-label="Playback position" type="range" id="seek" min="0" max="4" step="0.05" value="0" /><span class="player-caption">NO AUDIO</span></div><div class="preview-hint">Animated text-and-color preview only. Video export is a silent WebM animatic, not an AI-rendered film.</div></section>
+          <section class="inspector" aria-label="Shot editor"><div class="section-head"><h2>Shot details</h2><span class="panel-tag" id="shot-label">01 / 01</span></div><div class="inspector-content"><div class="input-group"><label for="shot-title">SHOT NAME</label><input id="shot-title" data-shot-field="title" maxlength="100" /></div><div class="input-group"><label for="shot-visual">VISUAL DIRECTION</label><textarea id="shot-visual" data-shot-field="visual" rows="3" placeholder="Describe the environment, movement, lighting, and action..."></textarea></div><div class="input-group"><label for="shot-caption">ON-SCREEN TEXT</label><textarea id="shot-caption" data-shot-field="caption" maxlength="180" rows="2" placeholder="Text shown in the animatic"></textarea></div><div class="input-row"><div class="input-group"><label for="shot-duration">SECONDS (2–12)</label><input id="shot-duration" type="number" min="2" max="12" step="1" data-shot-field="duration" /></div><div class="input-group"><label for="shot-palette">COLOR MOOD</label><select id="shot-palette" data-shot-field="palette"><option value="midnight">Electric violet</option><option value="sunset">Rose sunset</option><option value="ocean">Deep ocean</option><option value="ember">Warm ember</option></select></div></div><div class="input-group"><label for="shot-narration">NARRATION / AUDIO NOTES</label><textarea id="shot-narration" data-shot-field="narration" rows="2" placeholder="Notes only; audio is not embedded in the export"></textarea></div><div class="input-group"><label for="shot-continuity">CONTINUITY NOTES</label><textarea id="shot-continuity" data-shot-field="continuity" rows="2" placeholder="What must carry into the next shot?"></textarea></div></div></section>
+        </div>
+        <section class="timeline" aria-label="Shot timeline"><div class="section-head"><div><h2>Shot timeline</h2><p>Drag-free controls for predictable shot order.</p></div><button class="button outlined" id="add-shot">+ Add shot</button></div><div class="shot-list" id="shot-list"></div></section>
+        <details class="brief"><summary>Production brief and release notes <span>+</span></summary><div class="brief-grid"><div class="input-group"><label for="project-goal">GOAL / STORY</label><textarea id="project-goal" data-project-field="goal" rows="2" placeholder="What should this film communicate?"></textarea></div><div class="input-group"><label for="project-audience">AUDIENCE</label><input id="project-audience" data-project-field="audience" placeholder="Who is this for?" /></div><div class="input-group"><label for="project-cta">CALL TO ACTION</label><input id="project-cta" data-project-field="cta" placeholder="What should viewers do next?" /></div></div><p class="brief-caution">A saved storyboard or animatic does not authorize publication. Check asset rights and obtain required approval before release.</p></details>
+      </div>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
