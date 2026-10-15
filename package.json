@@ -1,12 +1,15 @@
 {
-  "name": "@jussandco/make-video-protocol",
+  "name": "@jussandco/makevideo-studio",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Standalone evidence-bound MAKEVIDEO v2.1 protocol, not a renderer",
+  "description": "Juss & Co. MakeVideo browser storyboard and evidence-bound v2.1 protocol",
   "scripts": {
-    "test": "node --test test/*.test.js",
-    "test:protocol": "node --test test/makevideoProtocol.test.js"
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs test/*.test.js",
+    "test:protocol": "node --test test/*.test.js"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }
