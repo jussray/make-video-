@@ -34,3 +34,5 @@ export function drawShotPhoto(ctx, data, W, H, elapsed, shotDuration, onReady) {
   ctx.fillRect(0,0,W,H);
   return true;
 }
+
+export function clearPhotoCache() { photos.clear(); }

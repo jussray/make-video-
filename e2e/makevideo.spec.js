@@ -110,3 +110,21 @@ test('creator-owned local photo persists and becomes visible in shot preview and
   await page.reload();
   await expect(page.locator('#shot-image-status')).toContainText('No image added');
 });
+
+test('clear saved storyboard requires confirmation and removes private project data', async ({ page }) => {
+  await page.goto(base);
+  await page.locator('#project-title').fill('PRIVATE TEST PROJECT');
+  await page.locator('#shot-visual').fill('Confidential shot note for erase test');
+  await page.locator('details.brief summary').click();
+  page.once('dialog', dialog => dialog.dismiss());
+  await page.locator('#clear-local-project').click();
+  await expect(page.locator('#project-title')).toHaveValue('PRIVATE TEST PROJECT');
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#clear-local-project').click();
+  await expect(page.locator('#project-title')).toHaveValue('Untitled film');
+  await expect(page.locator('#shot-count')).toHaveText('1 SHOT');
+  expect(await page.evaluate(() => localStorage.getItem('juss-makevideo-storyboard-v1'))).not.toContain('PRIVATE TEST PROJECT');
+  expect(await page.evaluate(() => localStorage.getItem('juss-makevideo-storyboard-v1'))).not.toContain('Confidential shot note');
+  await page.reload();
+  await expect(page.locator('#project-title')).toHaveValue('Untitled film');
+});

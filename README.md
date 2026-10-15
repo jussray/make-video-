@@ -20,3 +20,6 @@ The animatic exports video frames with text and color and **no audio**. Chrome-l
 
 Each shot can optionally use a PNG, JPEG or WebP image supplied by the creator. The browser crops/compresses it into a bounded embedded JPEG (approximately 75 KB or less) and applies a subtle slow zoom during playback and video export. Media never uploads to an external server. The storyboard JSON contains embedded images, so treat exports as potentially private files and share only deliberately. Use only assets you have rights to. The 24-shot and per-project storage limits prevent unlimited browser storage consumption. Removing a shot image restores the abstract animated-background rendering.
 
+
+## Clear saved local project
+The studio stores work in this browser's local storage. The **Clear local saved project** control requires confirmation, replaces the active project with a blank storyboard, and clears the in-memory photo cache. This does not delete JSON/video files the creator explicitly downloaded or clear other sites' data. Data stored by the browser is not encrypted by this application, so use the clearing control on shared devices.

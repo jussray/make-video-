@@ -1,7 +1,7 @@
 import { newProject, newShot, normalizeProject, totalDuration, formatTime, shotAtTime, PALETTES } from './model.js';
 import { preferredVideoType, finalizeVideoBlob } from './recording.js';
 import { photoToShotData } from './photo.js';
-import { preloadProjectPhotos, drawShotPhoto } from './photoCache.js';
+import { preloadProjectPhotos, drawShotPhoto, clearPhotoCache } from './photoCache.js';
 
 const STORE = 'juss-makevideo-storyboard-v1';
 const $ = id => document.getElementById(id);
@@ -158,6 +158,12 @@ $('shot-image').addEventListener('change',async event=>{
 $('remove-shot-image').addEventListener('click',()=>{
   const shot=project.shots[selected];if(!shot.imageData)return;
   shot.imageData='';stopPlayback();redraw();notify('Shot image removed');
+});
+$('clear-local-project').addEventListener('click',()=>{
+  if(!window.confirm("Clear this browser's saved MakeVideo project, including its embedded images and notes? This cannot be undone."))return;
+  stopPlayback();clearPhotoCache();localStorage.removeItem(STORE);
+  project=newProject();selected=0;redraw();
+  notify('Saved storyboard and embedded images cleared from this browser');
 });
 $('play-btn').addEventListener('click',startPlayback);
 $('seek').addEventListener('input',e=>{stopPlayback();elapsed=Number(e.target.value);renderPreview();});
