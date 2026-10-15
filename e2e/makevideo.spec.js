@@ -14,6 +14,7 @@ test('mobile storyboard edits and restores shots without overflowing', async ({ 
   expect(width.scroll).toBeLessThanOrEqual(width.viewport);
   await page.reload();
   await expect(page.locator('#shot-count')).toHaveText('2 SHOTS');
+  await page.locator('[data-select="1"]').click();
   await expect(page.locator('#shot-title')).toHaveValue('Playwright shot');
 });
 
