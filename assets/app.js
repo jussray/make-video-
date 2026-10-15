@@ -5,6 +5,8 @@ import { preloadProjectPhotos, drawShotPhoto, clearPhotoCache } from './photoCac
 import { validateAudioFile, decodeSoundtrack, makeAudioTrack } from './audio.js';
 
 const STORE = 'juss-makevideo-storyboard-v1';
+const brandedHost = location.hostname === 'makevideo.jussco.company';
+document.getElementById('domain-migration').hidden = !brandedHost;
 const $ = id => document.getElementById(id);
 let project;
 try { project = normalizeProject(JSON.parse(localStorage.getItem(STORE))); }

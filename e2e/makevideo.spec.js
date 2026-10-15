@@ -199,3 +199,16 @@ test('selected soundtrack is cleared with the private project', async ({page}) =
   await page.locator('#clear-local-project').click();
   await expect(page.locator('#soundtrack-status')).toContainText('No soundtrack selected');
 });
+
+test('canonical domain declares portable local JSON migration without cross-origin data access', async ({ page }) => {
+  await page.goto(base);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href','https://makevideo.jussco.company/');
+  await expect(page.locator('#domain-migration')).toBeHidden();
+  await page.evaluate(() => {
+    // The canonical presentation is host-scoped, not an attempt to read another origin.
+    document.getElementById('domain-migration').hidden=false;
+  });
+  await expect(page.locator('#domain-migration a')).toHaveAttribute('href','https://make-video.mcgill-raylene.workers.dev/');
+  await expect(page.locator('#domain-migration')).toContainText('Storyboard JSON');
+  await expect(page.locator('#domain-migration')).toContainText('private notes');
+});

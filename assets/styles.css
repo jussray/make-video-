@@ -13,3 +13,8 @@
 .soundtrack-volume{display:flex;align-items:center;gap:14px}.soundtrack-volume input{accent-color:#b084ed;flex:1;min-width:40px}
 #remove-soundtrack{align-self:flex-start;padding:8px 12px;font-size:11px}
 @media(max-width:700px){.soundtrack-panel{grid-template-columns:1fr;padding:15px;gap:16px}}
+
+.domain-migration{border:1px solid rgba(159,124,237,.45);background:rgba(51,35,84,.6);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:12px;color:#d9cde8;line-height:1.6}
+.domain-migration summary{font-weight:700;cursor:pointer;color:#f0e2ff}
+.domain-migration p{margin:9px 0 0}
+.domain-migration a{color:#e0b6ff;text-decoration:underline}

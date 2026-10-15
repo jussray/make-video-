@@ -2,7 +2,7 @@ name: MakeVideo studio checks
 
 on:
   push:
-    branches: [main, feat/makevideo-local-audio]
+    branches: [main, fix/makevideo-canonical-migration]
     paths:
       - 'assets/**'
       - 'scripts/**'
