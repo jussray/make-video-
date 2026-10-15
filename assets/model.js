@@ -1,3 +1,4 @@
+import { MAX_SHOT_IMAGE_CHARS, MAX_PROJECT_IMAGE_CHARS } from './photo.js';
 export const SCHEMA = 'makevideo/storyboard/v1';
 export const PALETTES = {
   midnight: ['#100a35', '#6f45da', '#140729'],
@@ -10,7 +11,7 @@ const clean = (value, max = 500) => String(value ?? '').slice(0, max);
 export function newShot(index = 1) {
   return {
     id: id(), title: `Shot ${index}`, duration: 4,
-    visual: '', caption: '', narration: '', continuity: '', palette: 'midnight',
+    visual: '', caption: '', narration: '', continuity: '', palette: 'midnight', imageData: '',
   };
 }
 export function newProject() {
@@ -26,7 +27,12 @@ export function normalizeProject(raw) {
   }
   const shots = raw.shots.map((s, i) => {
     if (!s || typeof s !== 'object') throw new Error('A shot has invalid data.');
+    const imageData = s.imageData == null ? '' : String(s.imageData);
+    if (imageData && (imageData.length > MAX_SHOT_IMAGE_CHARS || !/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(imageData))) {
+      throw new Error('Shot image must be a bounded JPEG encoded inside the storyboard.');
+    }
     return {
+      imageData,
       id: clean(s.id, 100) || id(), title: clean(s.title || `Shot ${i+1}`, 100),
       duration: Math.max(2, Math.min(12, Number.isFinite(Number(s.duration)) ? Number(s.duration) : 4)),
       visual: clean(s.visual, 2000), caption: clean(s.caption, 180),
@@ -35,6 +41,9 @@ export function normalizeProject(raw) {
     };
   });
   if (new Set(shots.map(s => s.id)).size !== shots.length) throw new Error('Shot IDs must be unique.');
+  if (shots.reduce((sum, s) => sum + s.imageData.length, 0) > MAX_PROJECT_IMAGE_CHARS) {
+    throw new Error('Project contains too much embedded image data; remove or simplify some images.');
+  }
   return {
     schema: SCHEMA, title: clean(raw.title || 'Untitled film', 100),
     format: ['16:9', '9:16', '1:1'].includes(raw.format) ? raw.format : '16:9',

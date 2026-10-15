@@ -1,5 +1,7 @@
 import { newProject, newShot, normalizeProject, totalDuration, formatTime, shotAtTime, PALETTES } from './model.js';
 import { preferredVideoType, finalizeVideoBlob } from './recording.js';
+import { photoToShotData } from './photo.js';
+import { preloadProjectPhotos, drawShotPhoto } from './photoCache.js';
 
 const STORE = 'juss-makevideo-storyboard-v1';
 const $ = id => document.getElementById(id);
@@ -52,6 +54,8 @@ function drawFrame(target, activeProject, second) {
   c.globalAlpha=.27; c.strokeStyle='#f0d8ff'; c.lineWidth=1;
   for(let n=0;n<6;n++) { c.beginPath(); c.arc(W*.55, H*.5, scale*(.3+n*.12)+Math.sin(second*.55)*12, 0, Math.PI*2);c.stroke(); }
   c.restore();
+  const shotStart=activeProject.shots.slice(0,index).reduce((sum,item)=>sum+item.duration,0);
+  drawShotPhoto(c,shot.imageData,W,H,second-shotStart,shot.duration,()=>renderPreview());
   c.fillStyle='rgba(255,255,255,.86)'; c.textAlign='left'; c.font=`700 ${Math.max(12, Math.round(scale*.021))}px sans-serif`;
   c.fillText('MAKEVIDEO  /  JUSS & CO.', W*.075, H*.10);
   c.textAlign='right';c.fillText(`SHOT ${String(index+1).padStart(2,'0')}`,W*.925,H*.10);
@@ -91,6 +95,8 @@ function renderInspector() {
   const shot=project.shots[selected];
   $('shot-label').textContent=`${String(selected+1).padStart(2,'0')} / ${String(project.shots.length).padStart(2,'0')}`;
   for(const field of document.querySelectorAll('[data-shot-field]')) field.value=shot[field.dataset.shotField];
+  $('shot-image-status').textContent=shot.imageData?'Image attached · stored in this browser':'No image added · color animation will render';
+  $('remove-shot-image').disabled=!shot.imageData;
 }
 function renderRail() {
   const host=$('shot-list');host.replaceChildren();
@@ -98,6 +104,7 @@ function renderRail() {
     const card=document.createElement('div');card.className=`shot-card ${i===selected?'selected':''}`;
     const palette=PALETTES[shot.palette];
     card.innerHTML=`<button class="shot-select" data-select="${i}" aria-label="Select shot ${i+1}" style="all:unset;cursor:pointer;display:block;width:100%"><div class="shot-thumb" style="background:linear-gradient(125deg,${palette[1]},${palette[0]})">${esc(shot.caption||shot.title)}</div><div class="shot-card-title"><strong>${esc(shot.title)}</strong><span>${shot.duration}s</span></div></button><div class="shot-ops"><button data-move="up" data-index="${i}" ${i===0?'disabled':''} aria-label="Move shot ${i+1} earlier">←</button><button data-duplicate="${i}" ${project.shots.length>=24?'disabled':''} aria-label="Duplicate shot ${i+1}">Duplicate</button><button data-move="down" data-index="${i}" ${i===project.shots.length-1?'disabled':''} aria-label="Move shot ${i+1} later">→</button><button data-delete="${i}" ${project.shots.length===1?'disabled':''} aria-label="Delete shot ${i+1}">×</button></div>`;
+    if(shot.imageData){const thumb=card.querySelector('.shot-thumb');thumb.style.backgroundImage=`linear-gradient(#12092344,#12092377), url("${shot.imageData}")`;thumb.style.backgroundSize='cover';thumb.style.backgroundPosition='center';}
     host.appendChild(card);
   });
   $('add-shot').disabled=project.shots.length>=24;
@@ -117,6 +124,7 @@ async function exportAnimatic() {
   const output=document.createElement('canvas');setSize(output,snapshot.format);
   const stream=output.captureStream(24); let recorder;
   try {
+    await preloadProjectPhotos(snapshot.shots);
     recorder=new MediaRecorder(stream,{mimeType:type,videoBitsPerSecond:2500000});
     const chunks=[];
     const recording=new Promise((resolve,reject)=>{recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};recorder.onerror=()=>reject(new Error('The browser recording failed.'));recorder.onstop=()=>resolve(new Blob(chunks,{type:recorder.mimeType||type}));});
@@ -131,6 +139,26 @@ async function exportAnimatic() {
   } catch(error){if(recorder?.state==='recording')recorder.stop();notify(`Export failed: ${error.message}`);}
   finally{stream.getTracks().forEach(t=>t.stop());btn.disabled=false;btn.textContent=original;exporting=false;}
 }
+$('shot-image').addEventListener('change',async event=>{
+  const file=event.currentTarget.files?.[0];
+  event.currentTarget.value='';
+  if(!file)return;
+  const shotId=project.shots[selected].id;
+  $('shot-image-status').textContent='Optimizing image for local storage…';
+  try{
+    const imageData=await photoToShotData(file,project.format);
+    const nextShots=project.shots.map(shot=>shot.id===shotId?{...shot,imageData}:shot);
+    const candidate=normalizeProject({...project,shots:nextShots});
+    const index=candidate.shots.findIndex(shot=>shot.id===shotId);
+    if(index<0)throw new Error('Selected shot no longer exists.');
+    stopPlayback();
+    project=candidate;selected=index;redraw();notify('Shot image attached · never uploaded');
+  }catch(error){renderInspector();notify(error.message);}
+});
+$('remove-shot-image').addEventListener('click',()=>{
+  const shot=project.shots[selected];if(!shot.imageData)return;
+  shot.imageData='';stopPlayback();redraw();notify('Shot image removed');
+});
 $('play-btn').addEventListener('click',startPlayback);
 $('seek').addEventListener('input',e=>{stopPlayback();elapsed=Number(e.target.value);renderPreview();});
 $('project-title').addEventListener('input',e=>{project.title=e.target.value.slice(0,100);save();renderPreview();});
@@ -156,7 +184,7 @@ $('export-json').addEventListener('click',()=>{fileDownload(new Blob([JSON.strin
 $('import-btn').addEventListener('click',()=>$('import-file').click());
 $('import-file').addEventListener('change',async e=>{
   const file=e.target.files?.[0];e.target.value='';if(!file)return;
-  if(file.size>150000){notify('File too large (150 KB max).');return;}
+  if(file.size>3200000){notify('Storyboard JSON too large (3.2 MB max).');return;}
   try{const imported=normalizeProject(JSON.parse(await file.text()));stopPlayback();project=imported;selected=0;redraw();notify('Storyboard imported');}
   catch(error){notify(`Import rejected: ${error.message}`);}
 });

@@ -15,3 +15,8 @@ npm run build
 Cloudflare Pages: production branch `main`, root `/`, build command `npm run build`, build output `dist`. The generated `dist` is a static site and needs no server.
 
 The animatic exports video frames with text and color and **no audio**. Chrome-like WebM recordings receive explicit duration metadata where the container layout is safely supported; an unsupported layout is returned unchanged with a review warning. Browser-supported MP4 recording is enabled for compatible devices. This does not establish real-world rendered media quality, asset rights, or permission to publish.
+
+## Local image shots
+
+Each shot can optionally use a PNG, JPEG or WebP image supplied by the creator. The browser crops/compresses it into a bounded embedded JPEG (approximately 75 KB or less) and applies a subtle slow zoom during playback and video export. Media never uploads to an external server. The storyboard JSON contains embedded images, so treat exports as potentially private files and share only deliberately. Use only assets you have rights to. The 24-shot and per-project storage limits prevent unlimited browser storage consumption. Removing a shot image restores the abstract animated-background rendering.
+
