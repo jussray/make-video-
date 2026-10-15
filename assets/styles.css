@@ -3,3 +3,13 @@
 #shot-image{font-size:12px;padding:9px;color:#bcb0d5}#shot-image::file-selector-button{background:#3d2a60;color:#fff;border:1px solid #8159aa;border-radius:7px;padding:7px;cursor:pointer;margin-right:9px}.image-status{font-size:12px;color:#d1b8f3}.image-privacy{font-size:11px;color:#a99fbb;line-height:1.55}#remove-shot-image{align-self:flex-start;font-size:11px;padding:7px 11px}
 
 .local-clear{border-top:1px solid #443653;padding-top:16px;margin-top:17px;display:flex;align-items:center;flex-wrap:wrap;gap:12px}.local-clear span{font-size:11px;color:#aca0bd;line-height:1.6;max-width:420px}
+
+.soundtrack-panel{display:grid;grid-template-columns:minmax(200px,1fr) minmax(250px,1.4fr);gap:20px;margin:0 0 18px;padding:20px;border:1px solid #534072;border-radius:16px;background:linear-gradient(110deg,#27193e,#1c162d)}
+.soundtrack-intro h2{font-size:17px;margin:8px 0}.soundtrack-intro p{font-size:12px;line-height:1.6;color:#a99abf;margin:0}
+.soundtrack-controls{display:flex;flex-direction:column;gap:9px;min-width:0}
+.soundtrack-label,.soundtrack-volume label{font-size:10px;letter-spacing:.06em;font-weight:800;color:#c4b3dd}
+#soundtrack-file{font-size:12px;max-width:100%;color:#d6c5e8}
+#soundtrack-file::file-selector-button{color:#fff;border:1px solid #865ab1;background:#453064;border-radius:8px;padding:8px;cursor:pointer}
+.soundtrack-volume{display:flex;align-items:center;gap:14px}.soundtrack-volume input{accent-color:#b084ed;flex:1;min-width:40px}
+#remove-soundtrack{align-self:flex-start;padding:8px 12px;font-size:11px}
+@media(max-width:700px){.soundtrack-panel{grid-template-columns:1fr;padding:15px;gap:16px}}

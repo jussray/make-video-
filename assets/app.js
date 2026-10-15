@@ -2,6 +2,7 @@ import { newProject, newShot, normalizeProject, totalDuration, formatTime, shotA
 import { preferredVideoType, finalizeVideoBlob } from './recording.js';
 import { photoToShotData } from './photo.js';
 import { preloadProjectPhotos, drawShotPhoto, clearPhotoCache } from './photoCache.js';
+import { validateAudioFile, decodeSoundtrack, makeAudioTrack } from './audio.js';
 
 const STORE = 'juss-makevideo-storyboard-v1';
 const $ = id => document.getElementById(id);
@@ -14,6 +15,7 @@ let elapsed = 0;
 let playStart = 0;
 let playingFrame = 0;
 let exporting = false;
+let soundtrackFile = null;
 let toastTimer;
 const canvas = $('preview');
 const ctx = canvas.getContext('2d');
@@ -114,31 +116,100 @@ function fileDownload(blob, suffix) {
   const name=(project.title||'makevideo').trim().replace(/[^a-z0-9-_]+/gi,'-').slice(0,54)||'makevideo';
   const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`${name}.${suffix}`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
 }
+function updateSoundtrackUI() {
+  $('soundtrack-status').textContent=soundtrackFile
+    ? `Selected for this export session: ${soundtrackFile.name} (not saved in the project)`
+    : 'No soundtrack selected. Video exports will be silent.';
+  $('remove-soundtrack').disabled=!soundtrackFile;
+  $('player-audio').textContent=soundtrackFile?'PREVIEW MUTED':'NO AUDIO';
+}
 async function exportAnimatic() {
   if(exporting)return;
-  if(typeof MediaRecorder==='undefined'||!HTMLCanvasElement.prototype.captureStream) {notify('This browser cannot record video. Export the storyboard JSON instead.');return;}
-  const type=preferredVideoType(MediaRecorder);
-  if(!type){notify('This browser supports neither WebM nor MP4 recording. Export storyboard JSON instead.');return;}
-  stopPlayback(); exporting=true; const btn=$('export-webm'), original=btn.textContent;btn.disabled=true;
-  const snapshot=normalizeProject(project);const duration=totalDuration(snapshot);
+  if(typeof MediaRecorder==='undefined'||!HTMLCanvasElement.prototype.captureStream) {
+    notify('This browser cannot record video. Export the storyboard JSON instead.');
+    return;
+  }
+  const selectedSoundtrack=soundtrackFile;
+  const type=preferredVideoType(MediaRecorder,!!selectedSoundtrack);
+  if(!type) {
+    notify(selectedSoundtrack?'This browser cannot export video with audio. Remove the soundtrack to make a silent animatic.':'This browser supports neither WebM nor MP4 recording.');
+    return;
+  }
+  stopPlayback();exporting=true;
+  const btn=$('export-webm'), original=btn.textContent;
+  btn.disabled=true;
+  const snapshot=normalizeProject(project),duration=totalDuration(snapshot);
   const output=document.createElement('canvas');setSize(output,snapshot.format);
-  const stream=output.captureStream(24); let recorder;
+  let recorder,videoStream,mixedStream,mix,audioContext;
   try {
+    // Create/resume the AudioContext inside the explicit export click gesture.
+    // A soundtrack is never downgraded silently to a video-only export.
+    if(selectedSoundtrack) {
+      const AudioEngine=window.AudioContext||window.webkitAudioContext;
+      if(!AudioEngine)throw new Error('This browser does not support local audio mixing.');
+      audioContext=new AudioEngine();
+      await audioContext.resume();
+    }
     await preloadProjectPhotos(snapshot.shots);
-    recorder=new MediaRecorder(stream,{mimeType:type,videoBitsPerSecond:2500000});
+    if(selectedSoundtrack) {
+      const buffer=await decodeSoundtrack(selectedSoundtrack,audioContext);
+      const level=Number($('soundtrack-volume').value)/100;
+      mix=makeAudioTrack(audioContext,buffer,level);
+    }
+    videoStream=output.captureStream(24);
+    mixedStream=mix ? new MediaStream([...videoStream.getVideoTracks(),...mix.stream.getAudioTracks()]) : videoStream;
+    recorder=new MediaRecorder(mixedStream,{mimeType:type,videoBitsPerSecond:2500000,...(mix?{audioBitsPerSecond:128000}:{})});
     const chunks=[];
-    const recording=new Promise((resolve,reject)=>{recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};recorder.onerror=()=>reject(new Error('The browser recording failed.'));recorder.onstop=()=>resolve(new Blob(chunks,{type:recorder.mimeType||type}));});
-    drawFrame(output,snapshot,0);recorder.start(250);
+    const recording=new Promise((resolve,reject)=>{
+      recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
+      recorder.onerror=()=>reject(new Error('The browser recording failed.'));
+      recorder.onstop=()=>resolve(new Blob(chunks,{type:recorder.mimeType||type}));
+    });
+    drawFrame(output,snapshot,0);
+    recorder.start(250);
+    if(mix) mix.source.start(audioContext.currentTime + 0.08);
     const start=performance.now();
-    await new Promise(resolve=>{function frame(now){const second=Math.min((now-start)/1000,duration);drawFrame(output,snapshot,second);btn.textContent=`Exporting ${Math.floor(second)} / ${Math.ceil(duration)}s`;if(second<duration)requestAnimationFrame(frame);else resolve();}requestAnimationFrame(frame)});
-    recorder.stop();const blob=await recording;
+    await new Promise(resolve=>{
+      function frame(now) {
+        const second=Math.min((now-start)/1000,duration);
+        drawFrame(output,snapshot,second);
+        btn.textContent=`Exporting ${Math.floor(second)} / ${Math.ceil(duration)}s`;
+        if(second<duration)requestAnimationFrame(frame);else resolve();
+      }
+      requestAnimationFrame(frame);
+    });
+    recorder.stop();
+    const blob=await recording;
     if(blob.size<1024)throw new Error('The browser did not produce playable-looking video bytes.');
     const completed=await finalizeVideoBlob(blob,duration*1000);
     fileDownload(completed.blob,completed.extension);
-    notify(`Silent ${completed.extension.toUpperCase()} animatic exported.${completed.extension==='webm' && !completed.durationPatched?' Verify duration and seeking in your video player.':''} Review before sharing.`);
-  } catch(error){if(recorder?.state==='recording')recorder.stop();notify(`Export failed: ${error.message}`);}
-  finally{stream.getTracks().forEach(t=>t.stop());btn.disabled=false;btn.textContent=original;exporting=false;}
+    notify(`${mix?'Soundtrack included in':'Silent'} ${completed.extension.toUpperCase()} animatic exported. Review before sharing.`);
+  } catch(error) {
+    if(recorder?.state==='recording')recorder.stop();
+    notify(`Export failed: ${error.message}`);
+  } finally {
+    try { mix?.source.stop(); } catch {}
+    mixedStream?.getTracks().forEach(track=>track.stop());
+    videoStream?.getTracks().forEach(track=>track.stop());
+    mix?.stream.getTracks().forEach(track=>track.stop());
+    if(audioContext)await audioContext.close().catch(()=>{});
+    btn.disabled=false;btn.textContent=original;exporting=false;
+  }
 }
+$('soundtrack-file').addEventListener('change', event=>{
+  const file=event.currentTarget.files?.[0];
+  event.currentTarget.value='';
+  if(!file)return;
+  try {
+    validateAudioFile(file);
+    soundtrackFile=file;
+    updateSoundtrackUI();
+    notify('Soundtrack ready for export. It will not be saved in the storyboard.');
+  } catch(error) {notify(error.message);}
+});
+$('remove-soundtrack').addEventListener('click',()=>{
+  soundtrackFile=null;updateSoundtrackUI();notify('Soundtrack removed from this session');
+});
 $('shot-image').addEventListener('change',async event=>{
   const file=event.currentTarget.files?.[0];
   event.currentTarget.value='';
@@ -162,6 +233,7 @@ $('remove-shot-image').addEventListener('click',()=>{
 $('clear-local-project').addEventListener('click',()=>{
   if(!window.confirm("Clear this browser's saved MakeVideo project, including its embedded images and notes? This cannot be undone."))return;
   stopPlayback();clearPhotoCache();localStorage.removeItem(STORE);
+  soundtrackFile=null;$('soundtrack-file').value='';updateSoundtrackUI();
   project=newProject();selected=0;redraw();
   notify('Saved storyboard and embedded images cleared from this browser');
 });
@@ -195,4 +267,4 @@ $('import-file').addEventListener('change',async e=>{
   catch(error){notify(`Import rejected: ${error.message}`);}
 });
 $('export-webm').addEventListener('click',exportAnimatic);
-renderHeader();renderInspector();renderRail();renderPreview();
+renderHeader();renderInspector();renderRail();renderPreview();updateSoundtrackUI();
