@@ -1,4 +1,5 @@
 import { newProject, newShot, normalizeProject, totalDuration, formatTime, shotAtTime, PALETTES } from './model.js';
+import { preferredVideoType, finalizeVideoBlob } from './recording.js';
 
 const STORE = 'juss-makevideo-storyboard-v1';
 const $ = id => document.getElementById(id);
@@ -108,9 +109,9 @@ function fileDownload(blob, suffix) {
 }
 async function exportAnimatic() {
   if(exporting)return;
-  if(typeof MediaRecorder==='undefined'||!HTMLCanvasElement.prototype.captureStream) {notify('This browser cannot export WebM. Export the storyboard JSON instead.');return;}
-  const type=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(t=>MediaRecorder.isTypeSupported(t));
-  if(!type){notify('WebM recording is unsupported in this browser.');return;}
+  if(typeof MediaRecorder==='undefined'||!HTMLCanvasElement.prototype.captureStream) {notify('This browser cannot record video. Export the storyboard JSON instead.');return;}
+  const type=preferredVideoType(MediaRecorder);
+  if(!type){notify('This browser supports neither WebM nor MP4 recording. Export storyboard JSON instead.');return;}
   stopPlayback(); exporting=true; const btn=$('export-webm'), original=btn.textContent;btn.disabled=true;
   const snapshot=normalizeProject(project);const duration=totalDuration(snapshot);
   const output=document.createElement('canvas');setSize(output,snapshot.format);
@@ -118,13 +119,15 @@ async function exportAnimatic() {
   try {
     recorder=new MediaRecorder(stream,{mimeType:type,videoBitsPerSecond:2500000});
     const chunks=[];
-    const recording=new Promise((resolve,reject)=>{recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};recorder.onerror=()=>reject(new Error('The browser recording failed.'));recorder.onstop=()=>resolve(new Blob(chunks,{type:'video/webm'}));});
+    const recording=new Promise((resolve,reject)=>{recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};recorder.onerror=()=>reject(new Error('The browser recording failed.'));recorder.onstop=()=>resolve(new Blob(chunks,{type:recorder.mimeType||type}));});
     drawFrame(output,snapshot,0);recorder.start(250);
     const start=performance.now();
     await new Promise(resolve=>{function frame(now){const second=Math.min((now-start)/1000,duration);drawFrame(output,snapshot,second);btn.textContent=`Exporting ${Math.floor(second)} / ${Math.ceil(duration)}s`;if(second<duration)requestAnimationFrame(frame);else resolve();}requestAnimationFrame(frame)});
     recorder.stop();const blob=await recording;
     if(blob.size<1024)throw new Error('The browser did not produce playable-looking video bytes.');
-    fileDownload(blob,'webm');notify('Silent WebM animatic exported. Review the downloaded video before sharing.');
+    const completed=await finalizeVideoBlob(blob,duration*1000);
+    fileDownload(completed.blob,completed.extension);
+    notify(`Silent ${completed.extension.toUpperCase()} animatic exported.${completed.extension==='webm' && !completed.durationPatched?' Verify duration and seeking in your video player.':''} Review before sharing.`);
   } catch(error){if(recorder?.state==='recording')recorder.stop();notify(`Export failed: ${error.message}`);}
   finally{stream.getTracks().forEach(t=>t.stop());btn.disabled=false;btn.textContent=original;exporting=false;}
 }
