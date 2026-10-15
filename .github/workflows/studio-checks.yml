@@ -7,6 +7,7 @@ on:
       - 'assets/**'
       - 'scripts/**'
       - 'tests/**'
+      - 'e2e/**'
       - 'index.html'
       - 'package.json'
       - 'package-lock.json'
@@ -17,6 +18,7 @@ on:
       - 'assets/**'
       - 'scripts/**'
       - 'tests/**'
+      - 'e2e/**'
       - 'index.html'
       - 'package.json'
       - 'package-lock.json'
@@ -37,3 +39,19 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: test -s dist/index.html && test -s dist/assets/recording.js
+      - name: Install browser testing runtime
+        run: |
+          npm install --no-save --package-lock=false @playwright/test@1.61.1
+          npx playwright install --with-deps chromium
+      - name: Verify actual mobile UI and WebM seeking with Playwright
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/makevideo-server.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for i in $(seq 1 25); do
+            if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail http://127.0.0.1:4173/ >/dev/null
+          npx playwright test e2e/makevideo.spec.js --browser chromium --reporter=line
+
