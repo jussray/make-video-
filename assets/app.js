@@ -3,6 +3,7 @@ import { preferredVideoType, finalizeVideoBlob } from './recording.js';
 import { photoToShotData } from './photo.js';
 import { preloadProjectPhotos, drawShotPhoto, clearPhotoCache } from './photoCache.js';
 import { validateAudioFile, decodeSoundtrack, makeAudioTrack } from './audio.js';
+import { storyEngineDraftJson } from './storyEngineHandoff.js';
 
 const STORE = 'juss-makevideo-storyboard-v1';
 const brandedHost = location.hostname === 'makevideo.jussco.company';
@@ -261,6 +262,15 @@ $('shot-list').addEventListener('click',e=>{
 });
 $('add-shot').addEventListener('click',()=>{if(project.shots.length>=24)return;stopPlayback();project.shots.push(newShot(project.shots.length+1));selected=project.shots.length-1;redraw();notify('Shot added');});
 $('export-json').addEventListener('click',()=>{fileDownload(new Blob([JSON.stringify(normalizeProject(project),null,2)],{type:'application/json'}),'json');notify('Storyboard JSON exported');});
+$('export-storyengine').addEventListener('click', () => {
+  try {
+    const draft = storyEngineDraftJson(normalizeProject(project));
+    fileDownload(new Blob([draft], { type: 'application/json' }), 'storyengine.json');
+    notify('Story Engine draft exported locally. Import it in Story Video Studio to review.');
+  } catch (error) {
+    notify('Story Engine handoff blocked: ' + error.message);
+  }
+});
 $('import-btn').addEventListener('click',()=>$('import-file').click());
 $('import-file').addEventListener('change',async e=>{
   const file=e.target.files?.[0];e.target.value='';if(!file)return;
