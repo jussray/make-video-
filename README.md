@@ -4,6 +4,31 @@ Standalone web studio for drafting shot-by-shot storyboards, previewing animated
 
 **Boundaries:** This is a browser storyboard/animatic tool, **not** the production AI renderer. The v2.1 MAKEVIDEO production protocol and StoryEngine adapter are source-level contracts with independent tests, not a deployed provider runtime. StoryEngine/LEEVIZE own provider rendering; FCR owns publication authority. No secrets, payment processing, uploads, external API integrations or automatic publication are used by this frontend. No user data leaves the browser.
 
+## Story Engine handoff (local draft only)
+
+The studio now offers **Story Engine draft** next to **Storyboard JSON**.
+This exports a privacy-minimized JSON file using the already-supported
+`makevideo/storyboard/v1` format. It discards embedded JPEG photos,
+narration, private continuity notes, audio, audience and CTA notes. It
+retains only the short title, goal, aspect ratio, and each shot's title,
+visual direction, caption and duration. Nothing is transmitted or approved.
+
+Open Story Engine's authenticated **Story Video Studio** and use its
+**MakeVideo storyboard JSON** import control. The file fills **draft**
+action beats for review. The existing Story Engine importer supports
+1–12 shots and up to 60 seconds; export refuses unsupported projects
+instead of silently trimming them. Story Engine may re-time shots when
+generating its own plan; precise shot timing is not yet preserved across
+this boundary.
+
+This action does NOT invoke HeyGen, transfer credentials, reserve
+provider credits, generate moving footage, or approve publication.
+A paid HeyGen submission has separate backend admin, continuity and
+spend gates. Do not treat this handoff as a deployed cross-site API.
+
+For the complete local storyboard including embedded photos and notes,
+continue using **Storyboard JSON**.
+
 ## Local verification
 
 ```sh
