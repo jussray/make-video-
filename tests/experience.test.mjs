@@ -16,7 +16,10 @@ test('source-labeled experience creates editable MakeVideo shots, never a verifi
   assert.equal(p.schema,'makevideo/storyboard/v1');
   assert.equal(p.shots.length,2);
   assert.equal(p.shots[0].title,'Founder Control Room');
-  assert.match(p.shots[1].caption,/UNKNOWN/);
+  assert.match(p.shots[1].caption,/ILLUSTRATIVE · DECLARED UNKNOWN/);
+  assert.match(p.shots[0].caption,/ILLUSTRATIVE · DECLARED VERIFIED SOURCE/);
+  assert.match(p.shots[0].continuity,/→ sol: Declared receipt handoff/);
+  assert.match(p.shots[1].continuity,/← fcr: Declared receipt handoff/);
   assert.match(p.goal,/NOT authenticated GitHub/);
   assert.equal(p.shots[0].imageData,'');
   assert.equal(p.shots[0].duration,4);
