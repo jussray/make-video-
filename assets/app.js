@@ -3,6 +3,7 @@ import { preferredVideoType, finalizeVideoBlob } from './recording.js';
 import { photoToShotData } from './photo.js';
 import { preloadProjectPhotos, drawShotPhoto, clearPhotoCache } from './photoCache.js';
 import { validateAudioFile, decodeSoundtrack, makeAudioTrack } from './audio.js';
+import { ensureBrandQr, drawBrandOverlay } from './branding.js';
 
 const STORE = 'juss-makevideo-storyboard-v1';
 const brandedHost = location.hostname === 'makevideo.jussco.company';
@@ -71,6 +72,7 @@ function drawFrame(target, activeProject, second) {
   for(const line of lines){c.shadowColor='#150d2880';c.shadowBlur=22;c.fillText(line,W*.5,y,W*.83);y+=lineHeight;}
   c.shadowBlur=0;c.globalAlpha=.85;c.font=`500 ${Math.max(12,Math.floor(scale*.024))}px sans-serif`;
   c.fillText(activeProject.title,W*.5,H*.9,W*.78);c.globalAlpha=1;
+  drawBrandOverlay(c, W, H, activeProject.branding);
   return index;
 }
 function renderPreview(second=elapsed) {
@@ -91,6 +93,7 @@ function startPlayback() {
 }
 function renderHeader() {
   $('project-title').value=project.title; $('project-format').value=project.format;
+  for (const field of document.querySelectorAll('[data-brand-field]')) field.checked = project.branding[field.dataset.brandField];
   $('shot-count').textContent=`${project.shots.length} SHOT${project.shots.length===1?'':'S'}`;
   $('total-duration').textContent=formatTime(totalDuration(project));
   for(const field of document.querySelectorAll('[data-project-field]')) field.value=project[field.dataset.projectField];
@@ -152,6 +155,7 @@ async function exportAnimatic() {
       audioContext=new AudioEngine();
       await audioContext.resume();
     }
+    if (snapshot.branding.qr) await ensureBrandQr();
     await preloadProjectPhotos(snapshot.shots);
     if(selectedSoundtrack) {
       const buffer=await decodeSoundtrack(selectedSoundtrack,audioContext);
@@ -268,5 +272,26 @@ $('import-file').addEventListener('change',async e=>{
   try{const imported=normalizeProject(JSON.parse(await file.text()));stopPlayback();project=imported;selected=0;redraw();notify('Storyboard imported');}
   catch(error){notify(`Import rejected: ${error.message}`);}
 });
+$('export-frame').addEventListener('click', async () => {
+  try {
+    const snapshot = normalizeProject(project);
+    if (snapshot.branding.qr) await ensureBrandQr();
+    await preloadProjectPhotos(snapshot.shots);
+    const output = document.createElement('canvas');
+    setSize(output, snapshot.format);
+    drawFrame(output, snapshot, elapsed);
+    const blob = await new Promise(resolve => output.toBlob(resolve, 'image/png'));
+    if (!blob || blob.type !== 'image/png' || blob.size < 1000) throw new Error('PNG frame could not be encoded.');
+    fileDownload(blob, 'png');
+    notify('Real PNG keyframe exported. Review before sharing.');
+  } catch (error) { notify(`Frame export failed: ${error.message}`); }
+});
+for (const field of document.querySelectorAll('[data-brand-field]')) field.addEventListener('change', event => {
+  const key = event.currentTarget.dataset.brandField;
+  project.branding[key] = event.currentTarget.checked;
+  save(); renderPreview();
+  if (key === 'qr' && project.branding.qr) ensureBrandQr().then(() => renderPreview()).catch(error => notify(error.message));
+});
 $('export-webm').addEventListener('click',exportAnimatic);
 renderHeader();renderInspector();renderRail();renderPreview();updateSoundtrackUI();
+if (project.branding.qr) ensureBrandQr().then(() => renderPreview()).catch(error => notify(error.message));
