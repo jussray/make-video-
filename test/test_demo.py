@@ -35,3 +35,12 @@ class VideoAssemblyTests(unittest.TestCase):
     def test_invalid_sha_fails_closed(self):
         with self.assertRaises(ValueError):
             assemble('missing.mp4','other.mp4','not-a-sha','out.mp4')
+
+    def test_refuses_overwriting_either_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            first=Path(directory)/'a.mp4'
+            second=Path(directory)/'b.mp4'
+            first.write_bytes(b'test')
+            second.write_bytes(b'test')
+            with self.assertRaisesRegex(ValueError,'cannot overwrite input'):
+                assemble(first,second,'c079666627f7e3ee544b1ecd97910b000329394c',first)
