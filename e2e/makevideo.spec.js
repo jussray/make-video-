@@ -241,7 +241,14 @@ test('branded frame PNG and recorded WebM render the same first-party QR', async
   expect(saved).toEqual({watermark:true,qr:true});
 
   await page.locator('#export-frame').click();
-  await expect.poll(() => page.evaluate(() => window.__brandPng?.size ?? 0)).toBeGreaterThan(1000);
+  await expect.poll(async () => {
+    const result = await page.evaluate(() => ({
+      bytes: window.__brandPng?.size ?? 0,
+      toast: document.getElementById('toast')?.textContent ?? ''
+    }));
+    if (/failed/i.test(result.toast)) throw new Error('PNG export says: ' + result.toast);
+    return result.bytes;
+  }, { timeout: 10000 }).toBeGreaterThan(1000);
   const frame = await page.evaluate(async () => {
     const bitmap = await createImageBitmap(window.__brandPng);
     const c = document.createElement('canvas'); c.width = bitmap.width; c.height = bitmap.height;
