@@ -1,4 +1,5 @@
 import { newProject, newShot, normalizeProject, totalDuration, formatTime, shotAtTime, PALETTES } from './model.js';
+import { experienceToStoryboard, EXAMPLE_EXPERIENCE } from './experience.js';
 import { preferredVideoType, finalizeVideoBlob } from './recording.js';
 import { photoToShotData } from './photo.js';
 import { preloadProjectPhotos, drawShotPhoto, clearPhotoCache } from './photoCache.js';
