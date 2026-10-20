@@ -18,3 +18,11 @@
 .domain-migration summary{font-weight:700;cursor:pointer;color:#f0e2ff}
 .domain-migration p{margin:9px 0 0}
 .domain-migration a{color:#e0b6ff;text-decoration:underline}
+
+/* Compact, responsive first-party branding controls. */
+.branding-panel{display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px;background:#1c162d;border:1px solid #392c4b;border-radius:15px;padding:17px 20px;margin-bottom:20px}
+.branding-panel>div{flex:1 1 245px}
+.branding-panel strong{color:#f7eeff;font-size:13px}
+.branding-panel p{margin:6px 0 0;font-size:11px;line-height:1.5;color:#ae9ebf}
+.branding-panel label{display:inline-flex;align-items:center;gap:8px;font-size:12px;min-height:44px;color:#eee4fc;cursor:pointer}
+.branding-panel input[type=checkbox]{width:18px;height:18px;accent-color:#9664e8}
