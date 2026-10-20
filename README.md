@@ -28,3 +28,30 @@ The studio stores work in this browser's local storage. The **Clear local saved 
 Add a creator-owned or otherwise licensed WAV, MP3, M4A, AAC, OGG, or WebM soundtrack from your device (maximum 12 MiB, maximum 300 decoded seconds). Files are read in memory and never uploaded or embedded in the saved storyboard JSON. After reload, select the file again. The editor preview is intentionally muted; export includes the selected audio track and a volume slider. A shorter track stops before the video's end (no repeat); a longer track is truncated to the video length. Unsupported browsers fail visibly instead of quietly replacing a requested soundtrack with silence. The **Clear local saved project** control also removes the session-only soundtrack selection.
 
 Actual audio codecs depend on the browser's MediaRecorder support. Always inspect and listen to the exported video. This feature does not grant permission to use third-party copyrighted music.
+
+## Verified local motion-video flow (`demo.py`)
+
+The browser studio remains a **local storyboard and animatic editor**. An additional independent Python/FFmpeg video path now accepts creator-owned **actual moving video files** (not static photographs or color slides), preserves native source audio where present, fills missing audio with silence, optionally mixes a locally supplied licensed soundtrack, and renders a H.264/AAC MP4 with measured duration. The edit produces a JSON release-evidence receipt and a source-bound SHA-256 continuity fingerprint; it never claims AI-video generation or permission to publish.
+
+```bash
+# Prerequisites: Python 3.10+, FFmpeg / FFprobe with libx264 and AAC enabled.
+python3 demo.py \
+  --clips ./footage/shot-01.mp4 ./footage/shot-02.mp4 \
+  --output ./out/cinematic-cut.mp4 \
+  --receipt ./out/cinematic-cut.receipt.json
+
+# Optional rights-cleared local soundtrack:
+python3 demo.py \
+  --clips ./footage/shot-01.mp4 ./footage/shot-02.mp4 \
+  --soundtrack ./audio/licensed-score.wav \
+  --output ./out/cinematic-cut-with-audio.mp4 \
+  --receipt ./out/cinematic-cut-with-audio.receipt.json
+```
+
+**Actual flow:** `licensed footage -> ffprobe input validation -> encode/crop/trim and concatenate real moving frames + native audio -> ffprobe output verification -> output SHA-256 + continuity receipt -> human audiovisual review -> separate release authority`. Rejects missing/bad inputs, unexpected duration, unsupported containers, oversized or overlong submissions (total <179 seconds), non-H.264/AAC output, and any attempt to overwrite originals or previous outputs. Does not generate or purchase footage; bring approved clips from your real camera, screen recording, or authorized provider outputs. It does not turn the browser's photo-based animatic into a cinematic film. This explicit boundary prevents a slow-zoom slideshow from being labeled a completed moving-action demonstration.
+
+```bash
+python3 -m unittest discover -s demo_tests -v
+```
+
+This Python motion-render test is also included in the existing GitHub Actions studio check. It exercises the real FFmpeg encoder, probes MP4 video + audio streams and verifies the source-bound proof receipt; this is different from the original browser's WebM/MP4 animatic tests. External provider integration and visual inspection of each copyrighted shot still require separate gates.

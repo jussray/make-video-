@@ -5,6 +5,8 @@ on:
     branches: [main, fix/makevideo-canonical-migration]
     paths:
       - 'assets/**'
+      - 'demo.py'
+      - 'demo_tests/**'
       - 'scripts/**'
       - 'tests/**'
       - 'e2e/**'
@@ -16,6 +18,8 @@ on:
   pull_request:
     paths:
       - 'assets/**'
+      - 'demo.py'
+      - 'demo_tests/**'
       - 'scripts/**'
       - 'tests/**'
       - 'e2e/**'
@@ -50,6 +54,8 @@ jobs:
             sudo apt-get install -y ffmpeg
           fi
           ffprobe -version | head -n 1
+      - name: Verify actual motion-video MP4 render and proof receipt
+        run: python3 -m unittest discover -s demo_tests -v
       - name: Verify actual mobile UI and WebM seeking with Playwright
         run: |
           python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/makevideo-server.log 2>&1 &
