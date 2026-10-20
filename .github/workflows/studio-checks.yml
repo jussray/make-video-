@@ -11,6 +11,7 @@ on:
       - 'tests/**'
       - 'e2e/**'
       - 'index.html'
+      - 'README.md'
       - 'package.json'
       - 'package-lock.json'
       - 'wrangler.jsonc'
@@ -24,6 +25,7 @@ on:
       - 'tests/**'
       - 'e2e/**'
       - 'index.html'
+      - 'README.md'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/studio-checks.yml'
@@ -42,7 +44,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - run: test -s dist/index.html && test -s dist/assets/recording.js
+      - run: test -s dist/index.html && test -s dist/assets/recording.js && test -s dist/assets/experience.js
       - name: Install browser testing runtime
         run: |
           npm install --no-save --package-lock=false @playwright/test@1.61.1
