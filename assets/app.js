@@ -269,5 +269,30 @@ $('import-file').addEventListener('change',async e=>{
   try{const imported=normalizeProject(JSON.parse(await file.text()));stopPlayback();project=imported;selected=0;redraw();notify('Storyboard imported');}
   catch(error){notify(`Import rejected: ${error.message}`);}
 });
+function acceptExperience(raw) {
+  // Validate fully before replacing saved work; user-supplied claims never prove a live release.
+  const incoming = normalizeProject(experienceToStoryboard(raw));
+  if (!window.confirm('Replace the current local storyboard with this visual experience? Export your existing storyboard JSON first if needed.')) return false;
+  stopPlayback();
+  clearPhotoCache();
+  project = incoming;
+  selected = 0;
+  redraw();
+  notify('Visual walkthrough ready as editable shots · source claims not independently verified');
+  return true;
+}
+$('experience-sample').addEventListener('click', () => {
+  try { acceptExperience(EXAMPLE_EXPERIENCE); }
+  catch(error) { notify('Sample rejected: ' + error.message); }
+});
+$('experience-import').addEventListener('click', () => $('experience-file').click());
+$('experience-file').addEventListener('change', async event => {
+  const file = event.currentTarget.files?.[0];
+  event.currentTarget.value = '';
+  if (!file) return;
+  if (file.size > 65536) { notify('Visual experience JSON too large (64 KiB max).'); return; }
+  try { acceptExperience(JSON.parse(await file.text())); }
+  catch(error) { notify('Visual experience rejected: ' + error.message); }
+});
 $('export-webm').addEventListener('click',exportAnimatic);
 renderHeader();renderInspector();renderRail();renderPreview();updateSoundtrackUI();
