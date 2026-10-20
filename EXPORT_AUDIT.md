@@ -39,3 +39,6 @@ This section supersedes older **time-bound** statements above; historical observ
 - ATTACK: The previous audit's claim that no PR existed is superseded: PR #1 was observed open with a do-not-merge gate. No verified current PR mergeability or production deployment is claimed.
 - BLOCKED: full source capability parity, StoryEngine exact-head regression evidence, GPU render, release authorization, and YouTube publishing remain unverified.
 - NEXT: Reconcile the original ULTRATHINK source modules and all dependencies before calling this a full export. Keep PR #1 unmerged until functional and authorization gates are independently verified.
+
+## Current reconciliation: 2026-10-20
+The old observations above apply to historical source-only exports, not the current local render branch. The verified creator-footage MP4 CLI, audio and Playwright studio landed on `main@a37f64cfe0a767b4b08be99bdd91082ac68d63c6` after exact-head green PR CI run 39357930831. This draft was rebuilt from that canonical source tree, retaining newer assets/index/build files and its root `demo.py`. The separate cinematic/runtime-capture assembler was moved to `examples/` rather than silently overwriting the general demo. This branch adds source-level protocol and evidence tests; no independent provider integration, content-rights approval or publishing authority is claimed.

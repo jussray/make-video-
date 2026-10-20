@@ -5,16 +5,21 @@ on:
       - 'src/**'
       - 'test/**'
       - 'package.json'
-      - 'demo.py'
+      - 'CAPABILITY.md'
+      - 'EXPORT_AUDIT.md'
+      - 'examples/**'
       - '.github/workflows/protocol-checks.yml'
   push:
     branches:
+      - 'main'
       - 'export/make-video-contract'
     paths:
       - 'src/**'
       - 'test/**'
       - 'package.json'
-      - 'demo.py'
+      - 'CAPABILITY.md'
+      - 'EXPORT_AUDIT.md'
+      - 'examples/**'
       - '.github/workflows/protocol-checks.yml'
 jobs:
   protocol:

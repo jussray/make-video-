@@ -1,8 +1,8 @@
 # MakeVideo | Juss & Co.
 
-Standalone web studio for drafting shot-by-shot storyboards, previewing animated text/color shots and exporting a **real, silent WebM or MP4 animatic** directly in the browser. Storyboards are saved in the device's local storage and can be imported/exported as JSON.
+Standalone web studio for drafting shot-by-shot storyboards, previewing animated text/color shots and exporting a **real WebM or MP4 animatic** directly in the browser. Storyboards are saved in the device's local storage and can be imported/exported as JSON.
 
-**Boundaries:** This is a browser storyboard/animatic tool, **not** the production AI renderer. The v2.1 MAKEVIDEO production contract and StoryEngine adapter remain on the open `export/make-video-contract` branch (PR #1) until independently verified. StoryEngine/LEEVIZE own provider rendering; FCR owns publication authority. No secrets, payment processing, uploads, external API integrations or automatic publication are used by this frontend. No user data leaves the browser.
+**Boundaries:** This is a browser storyboard/animatic tool, **not** the production AI renderer. The v2.1 MAKEVIDEO production protocol and StoryEngine adapter are source-level contracts with independent tests, not a deployed provider runtime. StoryEngine/LEEVIZE own provider rendering; FCR owns publication authority. No secrets, payment processing, uploads, external API integrations or automatic publication are used by this frontend. No user data leaves the browser.
 
 ## Local verification
 
@@ -14,7 +14,7 @@ npm run build
 
 Cloudflare Pages: production branch `main`, root `/`, build command `npm run build`, build output `dist`. The generated `dist` is a static site and needs no server.
 
-The animatic exports video frames with text and color and **no audio**. Chrome-like WebM recordings receive explicit duration metadata where the container layout is safely supported; an unsupported layout is returned unchanged with a review warning. Browser-supported MP4 recording is enabled for compatible devices. This does not establish real-world rendered media quality, asset rights, or permission to publish.
+The animatic exports locally animated frames and optional images, with optional creator-owned soundtrack audio. Chrome-like WebM recordings receive explicit duration metadata where the container layout is safely supported; an unsupported layout is returned unchanged with a review warning. Browser-supported MP4 recording is enabled for compatible devices. This does not establish real-world rendered media quality, asset rights, or permission to publish.
 
 ## Local image shots
 
@@ -57,3 +57,16 @@ python3 -m unittest discover -s demo_tests -v
 ```
 
 This Python motion-render test is also included in the existing GitHub Actions studio check. It exercises the real FFmpeg encoder, probes MP4 video + audio streams and verifies the source-bound proof receipt; this is different from the original browser's WebM/MP4 animatic tests. External provider integration and visual inspection of each copyrighted shot still require separate gates.
+## MAKEVIDEO v2.1: protocol and cinematic evidence boundary
+
+The `src/` and `test/` modules define the `makevideo/v2.1` protocol, evidence transitions, continuity fingerprints and release reconciliation. They do **not** execute AI provider jobs, independently authenticate runtime footage, or grant permission to publish. StoryEngine remains a separate peer product.
+
+The general `demo.py` is the verified local creator-footage editor. The separate `examples/cinematic_product_demo.py` composes a disclosed illustrative scene followed by a purported runtime screen capture, producing an evidence receipt with **runtime authenticity UNKNOWN** until independently verified. Do not substitute artificial UI animation for verified product behavior.
+
+```sh
+python3 examples/cinematic_product_demo.py --cinematic ./licensed-scene.mp4 --runtime ./captured-app.mp4 --source-sha ACTUAL_GIT_COMMIT_SHA --output ./out/product-demo.mp4
+python3 -m unittest discover -s test -p 'test_demo.py' -v
+npm test
+```
+
+A successful video export is not proof of model-generation, copyright/likeness permission, a live product integration, a completed purchase or FCR release authority.

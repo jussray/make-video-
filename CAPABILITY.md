@@ -1,6 +1,6 @@
 # MAKEVIDEO | Standalone capability boundary
 
-Version: `makevideo/v2.1`. Owner: Juss. Status: protocol and contract tests exported; **rendering and publication are not implemented in this repository**.
+Version: `makevideo/v2.1`. Owner: Juss. Status: protocol and contract tests exported; **external AI provider rendering and publication are not implemented; local browser animatics and standalone FFmpeg assembly are available**.
 
 ## Source lineage and precedence
 - Shared founder creative-production source: `jussray/ULTRATHINK-/.claude/skills/juss-af-skills-pack/SKILL.md`, v1.0.1, observed Git blob `d29849ef773c0cb31af062b5e121fe1f2f5289ec`. This source also owns /MAKEIMAGE, /advertise, and portfolio-wide creative governance. Do not copy that shared authority into this package.

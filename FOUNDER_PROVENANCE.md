@@ -32,3 +32,6 @@ Before merge: reconcile against current source, inspect diff and checks, run foc
 - VERIFIED: The local StoryEngine adapter contract checks protocol and adapter versions and explicitly returns `authorityGranted: false`. It is not a renderer or publishing integration.
 - NOT VERIFIED: exact current PR head, CI pass/fail, live ComfyUI/GPU availability, actual media bytes, playback, YouTube channel identity, upload authorization, or deployment.
 - NEXT GATE: obtain exact-head CI and StoryEngine focused-test results, inspect a real rendered media receipt and playback, then separately verify release authorization before merging or publishing. Preserve StoryEngine's renderer ownership; do not duplicate it in MAKEVIDEO.
+
+## Superseding local-render evidence — 2026-10-20
+Historical "no render verified" statements apply to the earlier export, not current `main@a37f64cfe0a767b4b08be99bdd91082ac68d63c6` whose local FFmpeg and browser UI tests passed. The separate v2.1 release protocol in this PR remains a source-level consumer contract; StoryEngine's actual renderer and provider authorization have not been proved by this repository.
