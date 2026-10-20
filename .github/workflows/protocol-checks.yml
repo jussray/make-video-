@@ -5,6 +5,7 @@ on:
       - 'src/**'
       - 'test/**'
       - 'package.json'
+      - 'demo.py'
       - '.github/workflows/protocol-checks.yml'
   push:
     branches:
@@ -13,6 +14,7 @@ on:
       - 'src/**'
       - 'test/**'
       - 'package.json'
+      - 'demo.py'
       - '.github/workflows/protocol-checks.yml'
 jobs:
   protocol:
@@ -29,3 +31,8 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: npm test
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: python -m unittest discover -s test -p 'test_demo.py' -v
