@@ -2,7 +2,7 @@ name: MakeVideo studio checks
 
 on:
   push:
-    branches: [main, fix/makevideo-canonical-migration, fix/makevideo-real-motion-demo-v1]
+    branches: [main, fix/makevideo-canonical-migration, fix/makevideo-real-motion-demo-v1, feature/visual-experience-output-20261020]
     paths:
       - 'assets/**'
       - 'demo.py'
