@@ -48,6 +48,8 @@ python3 demo.py \
   --receipt ./out/cinematic-cut-with-audio.receipt.json
 ```
 
+A bounded frame-change probe also rejects clips that appear completely static in their opening samples. Frame changes **do not** prove genuine filmed action: slow-zoom slideshows and fabricated UI may still change pixels, so source identity and actual footage remain subject to human review.
+
 **Actual flow:** `licensed footage -> ffprobe input validation -> encode/crop/trim and concatenate real moving frames + native audio -> ffprobe output verification -> output SHA-256 + continuity receipt -> human audiovisual review -> separate release authority`. Rejects missing/bad inputs, unexpected duration, unsupported containers, oversized or overlong submissions (total <179 seconds), non-H.264/AAC output, and any attempt to overwrite originals or previous outputs. Does not generate or purchase footage; bring approved clips from your real camera, screen recording, or authorized provider outputs. It does not turn the browser's photo-based animatic into a cinematic film. This explicit boundary prevents a slow-zoom slideshow from being labeled a completed moving-action demonstration.
 
 ```bash

@@ -29,6 +29,18 @@ class RenderFlowTests(unittest.TestCase):
             self.assertEqual(moving.read_bytes()[:8], (root/'real-motion.mp4').read_bytes()[:8])
             with self.assertRaises(RenderError):render([moving,silent],output,receipt,width=640,height=360)
 
+    def test_static_video_is_rejected_and_untrusted_motion_not_certified(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            still = root/'static.mp4'
+            subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-y',
+                            '-f','lavfi','-i','color=c=blue:size=640x360:rate=24:duration=2',
+                            '-c:v','libx264','-pix_fmt','yuv420p',str(still)], check=True)
+            with self.assertRaisesRegex(RenderError,'appears static'):
+                render([still],root/'out.mp4',root/'proof.json',width=640,height=360)
+            self.assertFalse((root/'out.mp4').exists())
+            self.assertFalse((root/'proof.json').exists())
+
     def test_empty_clip_list_fails_closed(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder)

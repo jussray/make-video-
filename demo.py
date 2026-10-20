@@ -45,6 +45,33 @@ def run_json(command: list[str]) -> dict:
         raise RenderError("Media probe returned invalid JSON.") from error
 
 
+
+def observe_frame_changes(path: Path, duration: float) -> dict:
+    """Bounded frame-change probe. Does not certify real-life action or media origin."""
+    sample_seconds = min(6.0, duration)
+    proc = subprocess.run(
+        ["ffmpeg", "-nostdin", "-v", "error", "-i", str(path),
+         "-t", str(sample_seconds), "-vf", "fps=4,scale=48:27,format=gray",
+         "-f", "rawvideo", "-"],
+        capture_output=True, check=False, timeout=45
+    )
+    frame_size = 48 * 27
+    frames = [proc.stdout[i:i + frame_size]
+              for i in range(0, len(proc.stdout), frame_size)
+              if len(proc.stdout[i:i + frame_size]) == frame_size]
+    if proc.returncode or len(frames) < 2:
+        raise RenderError("Cannot read enough frames to verify basic video motion.")
+    # Ignore minor codec noise: at least one frame-pair needs 3% of pixels
+    # to differ by nine or more grayscale levels.
+    changed = [sum(abs(a-b) >= 9 for a, b in zip(f1, f2))
+               for f1, f2 in zip(frames, frames[1:])]
+    most_changed = max(changed, default=0)
+    if most_changed < int(frame_size * 0.03):
+        raise RenderError("Input appears static in its opening samples. Supply moving footage.")
+    return {"sampled_frames": len(frames), "max_changed_pixels": most_changed,
+            "frame_change_observed": True, "motion_authenticity_verified": False}
+
+
 def validate_clip(path: Path) -> dict:
     if path.suffix.lower() not in EXTENSIONS or not path.is_file():
         raise RenderError(f"Provide a local video clip (.mp4/.mov/.mkv/.webm/.m4v): {path}")
@@ -61,7 +88,7 @@ def validate_clip(path: Path) -> dict:
         raise RenderError(f"Clip has no measurable duration: {path}") from error
     if not 0.2 <= duration <= 120:
         raise RenderError(f"Clip duration is outside 0.2–120 seconds: {path}")
-    return {"path": str(path), "duration_s": duration, "has_audio": any(s.get("codec_type") == "audio" for s in streams), "sha256": sha256(path)}
+    return {"path": str(path), "duration_s": duration, "has_audio": any(s.get("codec_type") == "audio" for s in streams), "sha256": sha256(path), "motion_probe": observe_frame_changes(path, duration)}
 
 
 def render(clips: list[Path], output: Path, receipt: Path, *, fps: int = 24, width: int = 1280, height: int = 720, soundtrack: Path | None = None) -> dict:
