@@ -1,15 +1,12 @@
 // Browser MediaRecorder container selection and safe WebM duration metadata repair.
 // The WebM patch is intentionally limited to recordings with an unknown-sized
 // Segment and no SeekHead/Cues to avoid invalidating absolute media offsets.
-export function preferredVideoType(recorderClass) {
+export function preferredVideoType(recorderClass, withAudio = false) {
   if (!recorderClass || typeof recorderClass.isTypeSupported !== 'function') return null;
-  return [
-    'video/webm;codecs=vp9',
-    'video/webm;codecs=vp8',
-    'video/webm',
-    'video/mp4;codecs=avc1.42E01E',
-    'video/mp4'
-  ].find(type => recorderClass.isTypeSupported(type)) || null;
+  const formats = withAudio
+    ? ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4']
+    : ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4;codecs=avc1.42E01E', 'video/mp4'];
+  return formats.find(type => recorderClass.isTypeSupported(type)) || null;
 }
 
 export function extensionForVideoType(type) {

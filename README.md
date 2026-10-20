@@ -16,22 +16,44 @@ Cloudflare Pages: production branch `main`, root `/`, build command `npm run bui
 
 The animatic exports video frames with text and color and **no audio**. Chrome-like WebM recordings receive explicit duration metadata where the container layout is safely supported; an unsupported layout is returned unchanged with a review warning. Browser-supported MP4 recording is enabled for compatible devices. This does not establish real-world rendered media quality, asset rights, or permission to publish.
 
-## StoryEngine v2.1 production protocol (source-only contract)
+## Local image shots
 
-The `src/` and `test/` modules define `makevideo/v2.1` job fingerprints, evidence transitions, continuity packets, release reconciliation and fail-closed publication checks. StoryEngine currently contains the same protocol implementation. These modules do **not** execute renderer jobs or publish videos. The authenticated StoryEngine runtime owns actual rendering, persisted media evidence and human release approval.
-
-`npm test` runs both the browser storyboard-model tests and protocol tests. A tested contract does not prove that GPU rendering is available; the GPU host has an independent runtime readiness gate.
+Each shot can optionally use a PNG, JPEG or WebP image supplied by the creator. The browser crops/compresses it into a bounded embedded JPEG (approximately 75 KB or less) and applies a subtle slow zoom during playback and video export. Media never uploads to an external server. The storyboard JSON contains embedded images, so treat exports as potentially private files and share only deliberately. Use only assets you have rights to. The 24-shot and per-project storage limits prevent unlimited browser storage consumption. Removing a shot image restores the abstract animated-background rendering.
 
 
-## Cinematic, evidence-bound video assembly (export branch)
+## Clear saved local project
+The studio stores work in this browser's local storage. The **Clear local saved project** control requires confirmation, replaces the active project with a blank storyboard, and clears the in-memory photo cache. This does not delete JSON/video files the creator explicitly downloaded or clear other sites' data. Data stored by the browser is not encrypted by this application, so use the clearing control on shared devices.
 
-`demo.py` assembles **two actual moving video files**, adds a visible illustrative-footage disclosure over the cinematic segment, and writes an H.264 MP4 plus an SHA-256/ffprobe receipt. This is a local FFmpeg assembly and proof-extraction flow, **not a model-generated cinematic scene** or a verified runtime screen recorder. It requires `ffmpeg` and `ffprobe`; supply genuine captured runtime footage and its independently verified source commit. The caller's supplied SHA is not independently authenticated by the script.
+## Local audio export
+Add a creator-owned or otherwise licensed WAV, MP3, M4A, AAC, OGG, or WebM soundtrack from your device (maximum 12 MiB, maximum 300 decoded seconds). Files are read in memory and never uploaded or embedded in the saved storyboard JSON. After reload, select the file again. The editor preview is intentionally muted; export includes the selected audio track and a volume slider. A shorter track stops before the video's end (no repeat); a longer track is truncated to the video length. Unsupported browsers fail visibly instead of quietly replacing a requested soundtrack with silence. The **Clear local saved project** control also removes the session-only soundtrack selection.
 
-```sh
-python demo.py --cinematic licensed-scene.mp4 --runtime captured-app.mp4 \\
-  --source-sha ACTUAL_APP_COMMIT_SHA --output output/product-demo.mp4
-python -m unittest discover -s test -p 'test_demo.py' -v
-npm test
+Actual audio codecs depend on the browser's MediaRecorder support. Always inspect and listen to the exported video. This feature does not grant permission to use third-party copyrighted music.
+
+## Verified local motion-video flow (`demo.py`)
+
+The browser studio remains a **local storyboard and animatic editor**. An additional independent Python/FFmpeg video path now accepts creator-owned **actual moving video files** (not static photographs or color slides), preserves native source audio where present, fills missing audio with silence, optionally mixes a locally supplied licensed soundtrack, and renders a H.264/AAC MP4 with measured duration. The edit produces a JSON release-evidence receipt and a source-bound SHA-256 continuity fingerprint; it never claims AI-video generation or permission to publish.
+
+```bash
+# Prerequisites: Python 3.10+, FFmpeg / FFprobe with libx264 and AAC enabled.
+python3 demo.py \
+  --clips ./footage/shot-01.mp4 ./footage/shot-02.mp4 \
+  --output ./out/cinematic-cut.mp4 \
+  --receipt ./out/cinematic-cut.receipt.json
+
+# Optional rights-cleared local soundtrack:
+python3 demo.py \
+  --clips ./footage/shot-01.mp4 ./footage/shot-02.mp4 \
+  --soundtrack ./audio/licensed-score.wav \
+  --output ./out/cinematic-cut-with-audio.mp4 \
+  --receipt ./out/cinematic-cut-with-audio.receipt.json
 ```
 
-The `src/cinematicEvidenceGate.js` audit rejects reported still-image pans, missing motion receipts, simulated UI passed off as real application playback, and missing illustrative disclosures. It only inspects submitted evidence records; its `evidence_authenticity_verified` and `authority_granted` flags stay false. The Python receipt likewise marks supplied runtime footage `UNKNOWN` pending external verification and human review. No generated MP4 automatically authorizes publishing. This branch currently diverges from `main`; do not merge without reconciling the complete studio and protocol trees, reviewing the exact head, and testing the combined product.
+A bounded frame-change probe also rejects clips that appear completely static in their opening samples. Frame changes **do not** prove genuine filmed action: slow-zoom slideshows and fabricated UI may still change pixels, so source identity and actual footage remain subject to human review.
+
+**Actual flow:** `licensed footage -> ffprobe input validation -> encode/crop/trim and concatenate real moving frames + native audio -> ffprobe output verification -> output SHA-256 + continuity receipt -> human audiovisual review -> separate release authority`. Rejects missing/bad inputs, unexpected duration, unsupported containers, oversized or overlong submissions (total <179 seconds), non-H.264/AAC output, and any attempt to overwrite originals or previous outputs. Does not generate or purchase footage; bring approved clips from your real camera, screen recording, or authorized provider outputs. It does not turn the browser's photo-based animatic into a cinematic film. This explicit boundary prevents a slow-zoom slideshow from being labeled a completed moving-action demonstration.
+
+```bash
+python3 -m unittest discover -s demo_tests -v
+```
+
+This Python motion-render test is also included in the existing GitHub Actions studio check. It exercises the real FFmpeg encoder, probes MP4 video + audio streams and verifies the source-bound proof receipt; this is different from the original browser's WebM/MP4 animatic tests. External provider integration and visual inspection of each copyrighted shot still require separate gates.

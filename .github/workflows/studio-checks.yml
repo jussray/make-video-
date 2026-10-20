@@ -2,9 +2,11 @@ name: MakeVideo studio checks
 
 on:
   push:
-    branches: [main]
+    branches: [main, fix/makevideo-canonical-migration, fix/makevideo-real-motion-demo-v1]
     paths:
       - 'assets/**'
+      - 'demo.py'
+      - 'demo_tests/**'
       - 'scripts/**'
       - 'tests/**'
       - 'e2e/**'
@@ -16,6 +18,8 @@ on:
   pull_request:
     paths:
       - 'assets/**'
+      - 'demo.py'
+      - 'demo_tests/**'
       - 'scripts/**'
       - 'tests/**'
       - 'e2e/**'
@@ -43,6 +47,15 @@ jobs:
         run: |
           npm install --no-save --package-lock=false @playwright/test@1.61.1
           npx playwright install --with-deps chromium
+      - name: Prepare audio-track probe
+        run: |
+          if ! command -v ffprobe >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y ffmpeg
+          fi
+          ffprobe -version | head -n 1
+      - name: Verify actual motion-video MP4 render and proof receipt
+        run: python3 -m unittest discover -s demo_tests -v
       - name: Verify actual mobile UI and WebM seeking with Playwright
         run: |
           python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/makevideo-server.log 2>&1 &

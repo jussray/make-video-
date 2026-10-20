@@ -3,13 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Juss & Co. MakeVideo browser storyboard and evidence-bound v2.1 protocol",
+  "description": "MakeVideo browser storyboard studio and silent animatic exporter",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node --test tests/*.test.mjs test/*.test.js",
-    "test:protocol": "node --test test/*.test.js"
+    "test": "node --test tests/*.test.mjs"
   },
-  "engines": {
-    "node": ">=20"
-  }
+  "engines": { "node": ">=20" }
 }
