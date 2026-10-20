@@ -64,6 +64,8 @@ def assemble(cinematic, runtime, source_sha, output, audio=None):
     cinematic, runtime, output = map(Path, (cinematic, runtime, output))
     if not cinematic.is_file() or not runtime.is_file() or cinematic.resolve() == runtime.resolve():
         raise ValueError('Two distinct existing cinematic and real runtime-capture videos are required')
+    if output.resolve() in (cinematic.resolve(), runtime.resolve()):
+        raise ValueError('Output path cannot overwrite input footage')
     first, second = probe(cinematic), probe(runtime)
     first_motion = motion_check(cinematic, first['duration_seconds'])
     second_motion = motion_check(runtime, second['duration_seconds'])
