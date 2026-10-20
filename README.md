@@ -4,6 +4,14 @@ Standalone web studio for drafting shot-by-shot storyboards, previewing animated
 
 **Boundaries:** This is a browser storyboard/animatic tool, **not** the production AI renderer. The v2.1 MAKEVIDEO production protocol and StoryEngine adapter are source-level contracts with independent tests, not a deployed provider runtime. StoryEngine/LEEVIZE own provider rendering; FCR owns publication authority. No secrets, payment processing, uploads, external API integrations or automatic publication are used by this frontend. No user data leaves the browser.
 
+## Source-labeled interactive-experience walkthroughs
+
+The existing studio can now turn a structured `jussco/visual-experience/v1` JSON manifest into editable storyboard shots. Choose **Visual walkthrough** for a frozen Juss & Co. example or **Experience JSON** to import your own architecture, playtest-flow, or visual canon inspection. This uses the **same** preview, editor, and actual browser WebM/MP4 animatic export; it does not install a parallel studio.
+
+The source claims in the supplied manifest are **not** live GitHub verification. The sample is a frozen public-source snapshot, not a release dashboard. Every item requires one of `VERIFIED_SOURCE / INFERRED / UNKNOWN / BLOCKED`; invalid statuses, duplicate IDs, invalid edges, and oversized files fail closed. An item labeled `VERIFIED_SOURCE` means only the **manifest author** marked its source inspected; MakeVideo does not verify or authorize the claim.
+
+Imported visuals initially use animated text/color shots; add your rights-cleared screenshots through the existing **SHOT IMAGE** input to make an image-backed walkthrough, then export the animatic. Importing asks before replacing locally saved projects. Existing footage, studio animations, browser privacy and publication boundaries remain intact. Static image production is owned separately by MakeImage. Independent browser verification of the real target remains a release gate.
+
 ## Local verification
 
 ```sh
