@@ -18,7 +18,7 @@ export function newProject() {
   return {
     schema: SCHEMA, title: 'Untitled film', format: '16:9',
     goal: '', audience: '', cta: '',
-    shots: [newShot(1)], updatedAt: new Date().toISOString(),
+    shots: [newShot(1)], branding: { watermark: false, qr: false }, updatedAt: new Date().toISOString(),
   };
 }
 export function normalizeProject(raw) {
@@ -49,6 +49,7 @@ export function normalizeProject(raw) {
     format: ['16:9', '9:16', '1:1'].includes(raw.format) ? raw.format : '16:9',
     goal: clean(raw.goal, 500), audience: clean(raw.audience, 250),
     cta: clean(raw.cta, 250), shots,
+    branding: { watermark: raw.branding?.watermark === true, qr: raw.branding?.qr === true },
     updatedAt: new Date().toISOString(),
   };
 }
