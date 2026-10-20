@@ -69,4 +69,11 @@ jobs:
           done
           curl --fail http://127.0.0.1:4173/ >/dev/null
           npx playwright test e2e/makevideo.spec.js e2e/visual-experience.spec.js --browser chromium --reporter=line
+      - name: Upload verified local visual walkthrough
+        uses: actions/upload-artifact@v4
+        with:
+          name: makevideo-visual-walkthrough-${{ github.sha }}
+          path: test-results/visual-experience.webm
+          if-no-files-found: error
+          retention-days: 14
 
