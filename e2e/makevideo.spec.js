@@ -212,3 +212,77 @@ test('canonical domain declares portable local JSON migration without cross-orig
   await expect(page.locator('#domain-migration')).toContainText('Storyboard JSON');
   await expect(page.locator('#domain-migration')).toContainText('private notes');
 });
+
+
+test('branded frame PNG and recorded WebM render the same first-party QR', async ({ page }) => {
+  test.setTimeout(60000);
+  await page.addInitScript(() => {
+    const original = URL.createObjectURL.bind(URL);
+    URL.createObjectURL = blob => {
+      if (blob?.type === 'image/png') window.__brandPng = blob;
+      if (blob?.type?.startsWith('video/')) window.__brandVideo = blob;
+      return original(blob);
+    };
+  });
+  await page.goto(base);
+  await expect(page.locator('#brand-qr')).not.toBeChecked();
+  await expect(page.locator('#brand-watermark')).not.toBeChecked();
+  await page.locator('#brand-watermark').check();
+  await page.locator('#brand-qr').check();
+  await expect.poll(() => page.evaluate(() => {
+    const canvas = document.getElementById('preview');
+    const pixel = canvas.getContext('2d').getImageData(781, 361, 1, 1).data;
+    return pixel[0] > 245 && pixel[1] > 245 && pixel[2] > 245;
+  }), { timeout: 10000 }).toBe(true); // White quiet zone, not an overlay label.
+  await page.reload();
+  await expect(page.locator('#brand-qr')).toBeChecked();
+  await expect(page.locator('#brand-watermark')).toBeChecked();
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('juss-makevideo-storyboard-v1')).branding);
+  expect(saved).toEqual({watermark:true,qr:true});
+
+  await page.locator('#export-frame').click();
+  await expect.poll(() => page.evaluate(() => window.__brandPng?.size ?? 0)).toBeGreaterThan(1000);
+  const frame = await page.evaluate(async () => {
+    const bitmap = await createImageBitmap(window.__brandPng);
+    const c = document.createElement('canvas'); c.width = bitmap.width; c.height = bitmap.height;
+    c.getContext('2d').drawImage(bitmap,0,0);
+    const pixel = Array.from(c.getContext('2d').getImageData(781,361,1,1).data);
+    bitmap.close();
+    return {width:c.width,height:c.height,pixel};
+  });
+  expect(frame.width).toBe(960);expect(frame.height).toBe(540);
+  expect(frame.pixel.slice(0,3).every(channel => channel > 245)).toBe(true);
+
+  await page.locator('#shot-duration').fill('2');
+  await page.locator('#export-webm').click();
+  await expect.poll(() => page.evaluate(() => window.__brandVideo?.size ?? 0), {timeout:20000}).toBeGreaterThan(1024);
+  const video = await page.evaluate(async () => {
+    const clip = document.createElement('video');
+    clip.muted=true;clip.preload='auto';clip.src=URL.createObjectURL(window.__brandVideo);
+    await new Promise((resolve,reject) => {
+      clip.onloadedmetadata = resolve;clip.onerror = () => reject(new Error('Video could not decode'));
+    });
+    clip.currentTime=.5;
+    await new Promise((resolve,reject) => {
+      clip.onseeked=resolve;clip.onerror=()=>reject(new Error('Could not seek'));
+    });
+    const c=document.createElement('canvas'); c.width=clip.videoWidth;c.height=clip.videoHeight;
+    c.getContext('2d').drawImage(clip,0,0);
+    const pixel=Array.from(c.getContext('2d').getImageData(781,361,1,1).data);
+    return {width:c.width,height:c.height,pixel};
+  });
+  expect(video.width).toBe(960); expect(video.height).toBe(540);
+  expect(video.pixel.slice(0,3).every(channel => channel > 210)).toBe(true); // Lossy codec.
+});
+
+test('unbranded portable storyboard remains compatible with prior v1 JSON', async ({ page }) => {
+  await page.goto(base);
+  await page.evaluate(() => localStorage.setItem('juss-makevideo-storyboard-v1', JSON.stringify({
+    schema:'makevideo/storyboard/v1',title:'Legacy story',format:'16:9',
+    shots:[{id:'legacy',title:'Legacy shot',duration:4,palette:'midnight'}]
+  })));
+  await page.reload();
+  await expect(page.locator('#project-title')).toHaveValue('Legacy story');
+  await expect(page.locator('#brand-watermark')).not.toBeChecked();
+  await expect(page.locator('#brand-qr')).not.toBeChecked();
+});
