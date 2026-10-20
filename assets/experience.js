@@ -36,6 +36,13 @@ export function experienceToStoryboard(raw) {
   if (!Array.isArray(edges) || edges.length > 24 || edges.some(edge => !edge || !ids.has(edge.from) || !ids.has(edge.to) || typeof (edge.label ?? '') !== 'string' || (edge.label ?? '').length > 90)) {
     throw new Error('Experience edges must reference known items');
   }
+  // Carry the declared topology into edit-friendly continuity notes; never promote it to runtime proof.
+  const incidentEdges = new Map(items.map(item => [item.id, []]));
+  for (const edge of edges) {
+    const label=(edge.label||'declared relation').trim() || 'declared relation';
+    incidentEdges.get(edge.from).push(`→ ${edge.to}: ${label}`);
+    incidentEdges.get(edge.to).push(`← ${edge.from}: ${label}`);
+  }
   const palette = raw.kind === 'canon' ? 'ocean' : raw.kind === 'playtest' ? 'sunset' : 'midnight';
   return {
     schema: 'makevideo/storyboard/v1',
@@ -48,9 +55,9 @@ export function experienceToStoryboard(raw) {
       id: `experience-${item.id}`,
       title: item.title,
       visual: `${raw.kind.toUpperCase()} · ${item.summary}`,
-      caption: `${item.state.replace(/_/g,' ')} • ${item.title}`,
+      caption: `ILLUSTRATIVE · DECLARED ${item.state.replace(/_/g,' ')} • ${item.title}`,
       narration: `User-supplied description: ${item.summary}. Evidence state: ${item.state}. No live verification performed by MakeVideo.`,
-      continuity: `Scene ${index + 1}/${items.length}. Manifest-declared relationships do not prove a runtime connection.`,
+      continuity: `Scene ${index + 1}/${items.length}. Declared edges: ${incidentEdges.get(item.id).join(' | ') || 'none'}. Manifest statements do not prove a runtime connection.`.slice(0,1000),
       duration: 4,
       palette,
       imageData: '',
