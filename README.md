@@ -70,3 +70,28 @@ npm test
 ```
 
 A successful video export is not proof of model-generation, copyright/likeness permission, a live product integration, a completed purchase or FCR release authority.
+
+## MakeImage local asset handoff
+
+The shot inspector has an optional **MakeImage proof handoff** area.
+Choose the original PNG created by MakeImage and its associated JSON receipt,
+then select **Verify receipt & attach to shot**. This checks the browser-local
+PNG bytes against the receipt SHA-256 and dimensions before applying the
+image. If either file is invalid, no shot is changed. The image is optimized
+to an embedded JPEG and the original source digest and continuity fingerprint
+are retained in the selected shot's continuity notes.
+
+Alternatively, use MakeImage's `export_makevideo.py` utility to produce an
+ordinary `makevideo/storyboard/v1` JSON file, then use **Import**. These are
+two different local flows, not a backend dependency. The handoff does not
+upload data or grant publication rights. Hashes bind bytes to the supplied
+receipt, but anyone can author a JSON receipt; they do **not** authenticate
+the author or establish an AI image-generation claim. Review the output and
+rights before publishing.
+
+When comparing against Cutaway: Cutaway uses a separate project format and
+may store media externally in IndexedDB. Do **not** rename a storyboard JSON
+to a Cutaway project or treat a `.cutaway` file as a portable media archive.
+A separately tested conversion, authorization boundary, and media inventory
+are necessary before integration. No Cutaway code or automatic cleanup has
+been incorporated into MakeVideo.
