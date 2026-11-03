@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateResearchUrl } from '../src/researchPolicy.js';
+import { validateResearchUrl, validateResolvedResearchAddresses } from '../src/researchPolicy.js';
 
 test('permits ordinary public research URLs', () => {
   assert.equal(validateResearchUrl('https://example.com/articles?q=film'), 'https://example.com/articles?q=film');
@@ -25,4 +25,11 @@ test('rejects documentation and benchmarking addresses', () => {
 });
 test('does not fetch or execute anything', () => {
   assert.equal(typeof validateResearchUrl, 'function');
+});
+
+test('DNS validation requires public IPv4 answers only', () => {
+  assert.deepEqual(validateResolvedResearchAddresses([{address:'8.8.8.8',family:4}]), ['8.8.8.8']);
+  for (const addresses of [[], ['127.0.0.1'], ['8.8.8.8','10.0.0.1'], ['::1'], ['::ffff:127.0.0.1'], ['203.0.113.1']]) {
+    assert.throws(() => validateResolvedResearchAddresses(addresses), TypeError);
+  }
 });
