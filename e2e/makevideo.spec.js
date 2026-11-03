@@ -234,6 +234,16 @@ test('local MakeImage receipt handoff validates PNG before changing a shot', asy
   await expect(page.locator('#makeimage-status')).toContainText('PNG digest matched');
   await expect(page.locator('#shot-continuity')).toHaveValue(new RegExp(sha));
   await expect(page.locator('#shot-image-status')).toContainText('Image attached');
+  // Verify the accepted image is actually decodable and persisted, not just a status message.
+  await expect.poll(() => page.evaluate(async () => {
+    const saved = JSON.parse(localStorage.getItem('juss-makevideo-storyboard-v1'));
+    const src = saved?.shots?.[0]?.imageData;
+    if (!src?.startsWith('data:image/jpeg;base64,')) return false;
+    const image = new Image();
+    image.src = src;
+    try { await image.decode(); } catch { return false; }
+    return image.naturalWidth > 0 && image.naturalHeight > 0;
+  })).toBe(true);
   await page.reload();
   await expect(page.locator('#shot-continuity')).toHaveValue(new RegExp(sha));
   // Deliberately change one source byte. The project must survive untouched.
