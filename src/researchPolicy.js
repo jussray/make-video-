@@ -25,6 +25,22 @@ function blockedIpv4(host) {
   });
 }
 
+export function validateResolvedResearchAddresses(addresses) {
+  if (!Array.isArray(addresses) || addresses.length === 0) {
+    throw new TypeError('Research DNS resolution is missing');
+  }
+  for (const record of addresses) {
+    const address = typeof record === 'string' ? record : record?.address;
+    const family = typeof address === 'string' ? isIP(address) : 0;
+    // IPv6 and IPv4-mapped IPv6 remain blocked until the network sandbox
+    // can enforce a complete global-unicast policy.
+    if (family !== 4 || blockedIpv4(address)) {
+      throw new TypeError('Research DNS resolved to a prohibited address');
+    }
+  }
+  return addresses.map(record => typeof record === 'string' ? record : record.address);
+}
+
 export function validateResearchUrl(input) {
   if (typeof input !== 'string' || input.length > 2048) throw new TypeError('Invalid research URL');
   let url;
