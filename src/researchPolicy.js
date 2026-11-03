@@ -3,18 +3,25 @@
 import { isIP } from 'node:net';
 
 const BLOCKED_HOSTS = new Set(['localhost', 'localhost.localdomain', 'metadata.google.internal']);
-const PRIVATE_V4 = [
-  [0, 8], [10, 8], [100, 10], [127, 8], [169, 16], [172, 12], [192, 16], [198, 15], [224, 4], [240, 4]
+// Reserved and non-global IPv4 ranges. The URL gate is only a preflight;
+// a network-isolated fetcher must separately validate resolved addresses and redirects.
+const BLOCKED_CIDRS = [
+  ['0.0.0.0', 8], ['10.0.0.0', 8], ['100.64.0.0', 10],
+  ['127.0.0.0', 8], ['169.254.0.0', 16], ['172.16.0.0', 12],
+  ['192.0.0.0', 24], ['192.0.2.0', 24], ['192.168.0.0', 16],
+  ['198.18.0.0', 15], ['198.51.100.0', 24],
+  ['203.0.113.0', 24], ['224.0.0.0', 4], ['240.0.0.0', 4]
 ];
 
+function ipv4Number(address) {
+  return address.split('.').reduce((value, octet) => ((value * 256) + Number(octet)) >>> 0, 0);
+}
+
 function blockedIpv4(host) {
-  const octets = host.split('.').map(Number);
-  if (octets.length !== 4 || octets.some(n => !Number.isInteger(n) || n < 0 || n > 255)) return true;
-  const value = octets.reduce((acc, n) => (acc * 256 + n) >>> 0, 0);
-  return PRIVATE_V4.some(([prefix, bits]) => {
-    const mask = bits === 0 ? 0 : (0xffffffff << (32 - bits)) >>> 0;
-    const network = prefix === 100 ? 0x64000000 : prefix === 172 ? 0xac000000 : prefix === 192 ? 0xc0000000 : prefix === 198 ? 0xc6000000 : prefix << 24;
-    return (value & mask) === (network & mask);
+  const address = ipv4Number(host);
+  return BLOCKED_CIDRS.some(([network, bits]) => {
+    const mask = (0xffffffff << (32 - bits)) >>> 0;
+    return (address & mask) === (ipv4Number(network) & mask);
   });
 }
 
