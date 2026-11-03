@@ -214,6 +214,29 @@ test('canonical domain declares portable local JSON migration without cross-orig
   await expect(page.locator('#domain-migration')).toContainText('private notes');
 });
 
+test('real MakeImage renderer output imports and decodes in MakeVideo', async ({ page }) => {
+  const { readFileSync } = await import('node:fs');
+  const source = process.env.MAKEIMAGE_PROOF_DIR;
+  test.skip(!source, 'Requires a pinned MakeImage renderer fixture from CI');
+  const png = readFileSync(source + '/scene.png');
+  const receipt = readFileSync(source + '/scene.receipt.json');
+  await page.goto(base);
+  await page.locator('#makeimage-png').setInputFiles({name:'scene.png',mimeType:'image/png',buffer:png});
+  await page.locator('#makeimage-receipt').setInputFiles({name:'scene.receipt.json',mimeType:'application/json',buffer:receipt});
+  await page.locator('#makeimage-attach').click();
+  await expect(page.locator('#makeimage-status')).toContainText('PNG digest matched');
+  await expect.poll(() => page.evaluate(async () => {
+    const shot = JSON.parse(localStorage.getItem('juss-makevideo-storyboard-v1'))?.shots?.[0];
+    if (!shot?.imageData?.startsWith('data:image/jpeg;base64,')) return false;
+    const image = new Image();
+    image.src = shot.imageData;
+    try { await image.decode(); } catch { return false; }
+    return image.naturalWidth > 0 && image.naturalHeight > 0;
+  })).toBe(true);
+  await page.reload();
+  await expect(page.locator('#shot-image-status')).toContainText('Image attached');
+});
+
 test('local MakeImage receipt handoff validates PNG before changing a shot', async ({ page }) => {
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGMMN1jFwMDAxMDAwMDAAAAOIwE1OiEMugAAAABJRU5ErkJggg==', 'base64');
   const sha = createHash('sha256').update(png).digest('hex');
