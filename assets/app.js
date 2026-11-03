@@ -1,6 +1,7 @@
 import { newProject, newShot, normalizeProject, totalDuration, formatTime, shotAtTime, PALETTES } from './model.js';
 import { preferredVideoType, finalizeVideoBlob } from './recording.js';
 import { photoToShotData } from './photo.js';
+import { importMakeImageFiles } from './makeimageHandoff.js';
 import { preloadProjectPhotos, drawShotPhoto, clearPhotoCache } from './photoCache.js';
 import { validateAudioFile, decodeSoundtrack, makeAudioTrack } from './audio.js';
 
@@ -211,6 +212,45 @@ $('soundtrack-file').addEventListener('change', event=>{
 });
 $('remove-soundtrack').addEventListener('click',()=>{
   soundtrackFile=null;updateSoundtrackUI();notify('Soundtrack removed from this session');
+});
+$('makeimage-attach').addEventListener('click', async () => {
+  const imageFile = $('makeimage-png').files?.[0];
+  const receiptFile = $('makeimage-receipt').files?.[0];
+  if (!imageFile || !receiptFile) {
+    $('makeimage-status').textContent = 'Select both the original PNG and its matching JSON receipt.';
+    return;
+  }
+  const shotId = project.shots[selected].id;
+  const originalFormat = project.format;
+  const button = $('makeimage-attach');
+  button.disabled = true;
+  $('makeimage-status').textContent = 'Checking PNG SHA-256 against local MakeImage receipt…';
+  try {
+    const { imageData, continuity } = await importMakeImageFiles(imageFile, receiptFile, originalFormat);
+    if (project.format !== originalFormat) throw new Error('Project aspect ratio changed during verification; retry.');
+    const nextShots = project.shots.map(shot => {
+      if (shot.id !== shotId) return shot;
+      const notes = [shot.continuity, continuity].filter(Boolean).join('\n');
+      if (notes.length > 1000) throw new Error('Continuity notes are full. Shorten them before importing proof.');
+      return { ...shot, imageData, continuity: notes };
+    });
+    const candidate = normalizeProject({ ...project, shots: nextShots });
+    const index = candidate.shots.findIndex(shot => shot.id === shotId);
+    if (index < 0) throw new Error('Selected shot no longer exists.');
+    stopPlayback();
+    project = candidate;
+    selected = index;
+    redraw();
+    $('makeimage-status').textContent = 'PNG digest matched receipt; attached locally. Rights and publication still require review.';
+    $('makeimage-png').value = '';
+    $('makeimage-receipt').value = '';
+    notify('MakeImage PNG attached with matching local receipt metadata.');
+  } catch (error) {
+    $('makeimage-status').textContent = 'Import blocked: ' + error.message;
+    notify(error.message);
+  } finally {
+    button.disabled = false;
+  }
 });
 $('shot-image').addEventListener('change',async event=>{
   const file=event.currentTarget.files?.[0];

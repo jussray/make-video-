@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 
@@ -211,4 +212,72 @@ test('canonical domain declares portable local JSON migration without cross-orig
   await expect(page.locator('#domain-migration a')).toHaveAttribute('href','https://make-video.mcgill-raylene.workers.dev/');
   await expect(page.locator('#domain-migration')).toContainText('Storyboard JSON');
   await expect(page.locator('#domain-migration')).toContainText('private notes');
+});
+
+test('real MakeImage renderer output imports and decodes in MakeVideo', async ({ page }) => {
+  const { readFileSync } = await import('node:fs');
+  const source = process.env.MAKEIMAGE_PROOF_DIR;
+  test.skip(!source, 'Requires a pinned MakeImage renderer fixture from CI');
+  const png = readFileSync(source + '/scene.png');
+  const receipt = readFileSync(source + '/scene.receipt.json');
+  await page.goto(base);
+  await page.locator('#makeimage-png').setInputFiles({name:'scene.png',mimeType:'image/png',buffer:png});
+  await page.locator('#makeimage-receipt').setInputFiles({name:'scene.receipt.json',mimeType:'application/json',buffer:receipt});
+  await page.locator('#makeimage-attach').click();
+  await expect(page.locator('#makeimage-status')).toContainText('PNG digest matched');
+  await expect.poll(() => page.evaluate(async () => {
+    const shot = JSON.parse(localStorage.getItem('juss-makevideo-storyboard-v1'))?.shots?.[0];
+    if (!shot?.imageData?.startsWith('data:image/jpeg;base64,')) return false;
+    const image = new Image();
+    image.src = shot.imageData;
+    try { await image.decode(); } catch { return false; }
+    return image.naturalWidth > 0 && image.naturalHeight > 0;
+  })).toBe(true);
+  await page.reload();
+  await expect(page.locator('#shot-image-status')).toContainText('Image attached');
+});
+
+test('local MakeImage receipt handoff validates PNG before changing a shot', async ({ page }) => {
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGMMN1jFwMDAxMDAwMDAAAAOIwE1OiEMugAAAABJRU5ErkJggg==', 'base64');
+  const sha = createHash('sha256').update(png).digest('hex');
+  const receipt = {
+    schema: 'makeimage/local-composite/v1',
+    state: 'VERIFIED_LOCAL_RENDER',
+    continuity_fingerprint: 'b'.repeat(64),
+    continuity_cookie: { publish_authority: false },
+    output: {format: 'PNG',sha256: sha,width: 2,height: 2}
+  };
+  await page.goto(base);
+  await page.locator('#makeimage-png').setInputFiles({name: 'scene.png',mimeType:'image/png',buffer:png});
+  await page.locator('#makeimage-receipt').setInputFiles({
+    name: 'scene.receipt.json',mimeType:'application/json',
+    buffer:Buffer.from(JSON.stringify(receipt))
+  });
+  await page.locator('#makeimage-attach').click();
+  await expect(page.locator('#makeimage-status')).toContainText('PNG digest matched');
+  await expect(page.locator('#shot-continuity')).toHaveValue(new RegExp(sha));
+  await expect(page.locator('#shot-image-status')).toContainText('Image attached');
+  // Verify the accepted image is actually decodable and persisted, not just a status message.
+  await expect.poll(() => page.evaluate(async () => {
+    const saved = JSON.parse(localStorage.getItem('juss-makevideo-storyboard-v1'));
+    const src = saved?.shots?.[0]?.imageData;
+    if (!src?.startsWith('data:image/jpeg;base64,')) return false;
+    const image = new Image();
+    image.src = src;
+    try { await image.decode(); } catch { return false; }
+    return image.naturalWidth > 0 && image.naturalHeight > 0;
+  })).toBe(true);
+  await page.reload();
+  await expect(page.locator('#shot-continuity')).toHaveValue(new RegExp(sha));
+  // Deliberately change one source byte. The project must survive untouched.
+  const tampered = Buffer.from(png);
+  tampered[tampered.length - 1] ^= 1;
+  await page.locator('#makeimage-png').setInputFiles({name: 'tampered.png',mimeType:'image/png',buffer:tampered});
+  await page.locator('#makeimage-receipt').setInputFiles({
+    name:'scene.receipt.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(receipt))
+  });
+  await page.locator('#makeimage-attach').click();
+  await expect(page.locator('#makeimage-status')).toContainText('Import blocked');
+  await expect(page.locator('#shot-continuity')).toHaveValue(new RegExp(sha));
+  await expect(page.locator('#shot-image-status')).toContainText('Image attached');
 });
