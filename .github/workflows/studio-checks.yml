@@ -56,6 +56,15 @@ jobs:
           ffprobe -version | head -n 1
       - name: Verify actual motion-video MP4 render and proof receipt
         run: python3 -m unittest discover -s demo_tests -v
+      - name: Generate cross-repo MakeImage PNG and receipt from pinned source
+        run: |
+          git clone --quiet https://github.com/jussray/make-image.git /tmp/makeimage-source
+          git -C /tmp/makeimage-source checkout --quiet 7d00e540b36269d4533252544fb15a15563b3876
+          python3 -m pip install -r /tmp/makeimage-source/requirements.txt
+          mkdir -p /tmp/makeimage-proof
+          python3 /tmp/makeimage-source/demo.py --title "Cross-app verified scene" --subtitle "Original local composite" --width 640 --height 360 --output /tmp/makeimage-proof/scene.png --receipt /tmp/makeimage-proof/scene.receipt.json
+          test -s /tmp/makeimage-proof/scene.png
+          test -s /tmp/makeimage-proof/scene.receipt.json
       - name: Verify actual mobile UI and WebM seeking with Playwright
         run: |
           python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/makevideo-server.log 2>&1 &
@@ -66,5 +75,5 @@ jobs:
             sleep 1
           done
           curl --fail http://127.0.0.1:4173/ >/dev/null
-          npx playwright test e2e/makevideo.spec.js --browser chromium --reporter=line
+          MAKEIMAGE_PROOF_DIR=/tmp/makeimage-proof npx playwright test e2e/makevideo.spec.js --browser chromium --reporter=line
 
