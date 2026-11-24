@@ -11,6 +11,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
+import re
+import tempfile
 import shutil
 import subprocess
 import sys
@@ -35,8 +38,24 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def parse_frame_rate(value) -> float:
+    if isinstance(value, bool) or not isinstance(value, (str, int, float)):
+        raise RenderError('Invalid frame rate.')
+    parts = [part.strip() for part in str(value).strip().split('/')]
+    if len(parts) > 2 or any(not re.fullmatch(r'\d+(?:\.\d+)?', part) for part in parts):
+        raise RenderError('Invalid frame rate.')
+    numerator = float(parts[0])
+    denominator = float(parts[1]) if len(parts) == 2 else 1.0
+    if not math.isfinite(numerator) or not math.isfinite(denominator) or numerator <= 0 or denominator <= 0:
+        raise RenderError('Invalid frame rate.')
+    rate = numerator / denominator
+    if not math.isfinite(rate) or rate <= 0:
+        raise RenderError('Invalid frame rate.')
+    return rate
+
+
 def run_json(command: list[str]) -> dict:
-    proc = subprocess.run(command, check=False, text=True, capture_output=True)
+    proc = subprocess.run(command, check=False, text=True, capture_output=True, timeout=180)
     if proc.returncode:
         raise RenderError(f"Media probe failed: {proc.stderr.strip()[-400:]}")
     try:
@@ -50,7 +69,7 @@ def observe_frame_changes(path: Path, duration: float) -> dict:
     """Bounded frame-change probe. Does not certify real-life action or media origin."""
     sample_seconds = min(6.0, duration)
     proc = subprocess.run(
-        ["ffmpeg", "-nostdin", "-v", "error", "-i", str(path),
+        ["ffmpeg", "-nostdin", "-v", "error", "-xerror", "-i", str(path),
          "-t", str(sample_seconds), "-vf", "fps=4,scale=48:27,format=gray",
          "-f", "rawvideo", "-"],
         capture_output=True, check=False, timeout=45
@@ -145,31 +164,45 @@ def render(clips: list[Path], output: Path, receipt: Path, *, fps: int = 24, wid
         graph.append(f"[{len(inputs)}:a:0]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo,volume=0.18,atrim=duration={total:.6f},asetpts=PTS-STARTPTS[score]")
         graph.append("[native][score]amix=inputs=2:duration=first:normalize=0[audio]")
         audio_label = "audio"
-    command.extend(["-filter_complex", ";".join(graph), "-map", "[video]", "-map", f"[{audio_label}]", "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(output)])
+    with tempfile.TemporaryDirectory(prefix="makevideo-render-") as temporary:
+        staged = Path(temporary) / "render.mp4"
+        return finish_render(command, graph, audio_label, staged, output, receipt, inputs, sound_info, fps, width, height, total)
+
+
+def finish_render(command, graph, audio_label, staged, output, receipt, inputs, sound_info, fps, width, height, total):
+    command.extend(["-filter_complex", ";".join(graph), "-map", "[video]", "-map", f"[{audio_label}]", "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(staged)])
     try:
-        proc = subprocess.run(command, text=True, capture_output=True, check=False)
+        proc = subprocess.run(command, text=True, capture_output=True, check=False, timeout=600)
         if proc.returncode:
             raise RenderError("FFmpeg render failed: " + proc.stderr.strip()[-1000:])
-        final = run_json(["ffprobe", "-v", "error", "-show_entries", "format=duration:stream=codec_type,codec_name,width,height", "-of", "json", str(output)])
+        final = run_json(["ffprobe", "-v", "error", "-count_frames", "-show_entries", "format=duration:stream=codec_type,codec_name,width,height,r_frame_rate,nb_read_frames", "-of", "json", str(staged)])
         streams = final.get("streams", [])
         video = next((s for s in streams if s.get("codec_type") == "video"), None)
         audio = next((s for s in streams if s.get("codec_type") == "audio"), None)
         duration = float(final.get("format", {}).get("duration", 0))
         if (not video or video.get("codec_name") != "h264" or video.get("width") != width or video.get("height") != height or not audio or audio.get("codec_name") != "aac" or abs(duration-total) > 1.0):
             raise RenderError("Output proof failed codec, dimensions, audio or duration checks.")
+        decoded_frames = int(video.get("nb_read_frames", 0))
+        if decoded_frames <= 0 or abs(parse_frame_rate(video.get("r_frame_rate"))-fps) > 0.001 or not math.isfinite(duration):
+            raise RenderError("Output frame contract failed.")
+        decode = subprocess.run(["ffmpeg","-nostdin","-v","error","-xerror","-i",str(staged),"-map","0:v:0","-map","0:a:0","-f","null","-"],capture_output=True,timeout=180)
+        if decode.returncode:
+            raise RenderError("Output full decode failed.")
+        motion = observe_frame_changes(staged,duration)
         fingerprint = hashlib.sha256(json.dumps({"inputs": inputs, "soundtrack": sound_info, "fps": fps, "width": width, "height": height}, sort_keys=True).encode()).hexdigest()
         evidence = {
             "schema": "makevideo/local-motion-render/v1", "state": "VERIFIED_LOCAL_RENDER", "generated_at_utc": datetime.now(timezone.utc).isoformat(),
             "continuity_fingerprint": fingerprint, "continuity_cookie": {"parent": fingerprint[:16], "release_authority": False, "publish_authority": False},
-            "inputs": inputs, "soundtrack": sound_info, "output": {"path": str(output), "sha256": sha256(output), "duration_s": duration, "width": width, "height": height, "video_codec": "h264", "audio_codec": "aac"},
+            "inputs": inputs, "soundtrack": sound_info, "output": {"path": str(output), "sha256": sha256(staged), "decoded_frames": decoded_frames, "fps": parse_frame_rate(video.get("r_frame_rate")), "full_decode": True, "motion_probe": motion, "duration_s": duration, "width": width, "height": height, "video_codec": "h264", "audio_codec": "aac"},
             "limitations": ["Local FFmpeg edit of actual source video clips, not an AI-generated film", "Input copyright/consent and human review not verified", "No network, model access, export approval or publication"],
         }
-        receipt.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        with output.open("xb") as dst, staged.open("rb") as src:
+            shutil.copyfileobj(src,dst)
+        with receipt.open("x", encoding="utf-8") as dst:
+            dst.write(json.dumps(evidence, indent=2, sort_keys=True) + "\n")
         return evidence
-    except Exception:
-        if output.exists():
-            output.unlink()  # Discard invalid output, never an existing source.
-        raise
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise RenderError("Local export failed; existing targets were not overwritten.") from error
 
 
 def main() -> int:
