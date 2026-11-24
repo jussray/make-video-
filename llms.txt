@@ -1,0 +1,14 @@
+# MakeVideo — Juss & Co.
+
+Canonical browser studio: https://makevideo.jussco.company/
+
+MakeVideo is a browser storyboard and animatic editor. Arrange shots, add locally owned images, write captions and narration notes, and attach an optional soundtrack. Export storyboard JSON or a browser-supported video format. The separate local Python/FFmpeg workflow assembles actual video clips. The browser studio does not perform AI video inference, speech synthesis, or automatic publication.
+
+## Public discovery
+- Studio: https://makevideo.jussco.company/
+- Sitemap: https://makevideo.jussco.company/sitemap.xml
+- Crawler policy: https://makevideo.jussco.company/robots.txt
+- Machine-readable policy: https://makevideo.jussco.company/crawlers.json
+
+## Evidence and privacy
+Source availability is not deployment proof. Browser project data and creator assets are not discovery content. Public search access is read-only; no training or bulk collection authorization, rights grant, or publishing authority. No ranking, commercial outcome, or GPU availability is claimed.
