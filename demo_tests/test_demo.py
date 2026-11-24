@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from demo import RenderError, render
+from demo import RenderError, render, parse_frame_rate
 
 
 @unittest.skipUnless(shutil.which('ffmpeg') and shutil.which('ffprobe'), 'Requires installed ffmpeg/ffprobe')
@@ -23,6 +23,10 @@ class RenderFlowTests(unittest.TestCase):
             self.assertEqual(result['state'],'VERIFIED_LOCAL_RENDER')
             self.assertGreater(output.stat().st_size,1024)
             self.assertEqual(result['output']['audio_codec'],'aac')
+            self.assertEqual(result['output']['decoded_frames'],48)
+            self.assertTrue(result['output']['full_decode'])
+            self.assertEqual(result['output']['fps'],24)
+            self.assertTrue(result['output']['motion_probe']['frame_change_observed'])
             self.assertLess(abs(result['output']['duration_s']-2),0.3)
             self.assertEqual(result['output']['sha256'],json.loads(receipt.read_text())['output']['sha256'])
             self.assertFalse(result['continuity_cookie']['publish_authority'])
@@ -40,6 +44,13 @@ class RenderFlowTests(unittest.TestCase):
                 render([still],root/'out.mp4',root/'proof.json',width=640,height=360)
             self.assertFalse((root/'out.mp4').exists())
             self.assertFalse((root/'proof.json').exists())
+
+    def test_rate_parser_rejects_invalid_or_nonpositive_values(self):
+        for value in ("24", "24/1", 24):
+            self.assertEqual(parse_frame_rate(value), 24)
+        for value in ("", "24/0", "24/", "nan", "-24", True):
+            with self.assertRaises(RenderError):
+                parse_frame_rate(value)
 
     def test_empty_clip_list_fails_closed(self):
         with tempfile.TemporaryDirectory() as folder:
