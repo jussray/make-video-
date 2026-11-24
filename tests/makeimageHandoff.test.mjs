@@ -61,3 +61,21 @@ test('file adapter checks receipt then invokes original image optimizer', async 
   assert.equal(result.imageData,'data:image/jpeg;base64,AAAA');
   await assert.rejects(importMakeImageFiles(file,{size:20,text:async()=>'{'}),/valid JSON/);
 });
+
+test('new receipts require a real decoded pixel digest before converting a shot', async () => {
+  const {bytes,receipt} = fixture();
+  receipt.output.pixel_sha256 = 'c'.repeat(64);
+  receipt.output.bytes = bytes.length;
+  receipt.output.full_decode = true;
+  const file = {type:'image/png',size:bytes.length,arrayBuffer:async()=>bytes.buffer};
+  const proof = {size:800,text:async()=>JSON.stringify(receipt)};
+  let conversions=0;
+  const convert=async()=>{conversions++;return 'data:image/jpeg;base64,AAAA';};
+  await assert.rejects(importMakeImageFiles(file,proof,'9:16',convert,async()=> 'd'.repeat(64)),/Decoded pixels/);
+  assert.equal(conversions,0);
+  const result=await importMakeImageFiles(file,proof,'9:16',convert,async()=> 'c'.repeat(64));
+  assert.equal(result.pixel_digest_matched,true);
+  assert.equal(conversions,1);
+  receipt.output.bytes++;
+  await assert.rejects(importMakeImageFiles(file,proof,'9:16',convert,async()=> 'c'.repeat(64)),/byte count/);
+});
