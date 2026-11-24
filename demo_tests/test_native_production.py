@@ -47,5 +47,9 @@ class NativeProductionTests(unittest.TestCase):
         self.assertTrue(out.stat().st_size > 1024)
         self.assertIn("Build. Verify.",(self.root/"out.srt").read_text())
         self.assertEqual(len(proof["narration"]),1)
+        self.assertEqual(proof["decoded_frames"],60)
+        self.assertEqual(proof["fps"],30)
+        self.assertTrue(proof["full_decode"])
+        self.assertEqual(proof["output_bytes"],out.stat().st_size)
         with self.assertRaises(ProductionError):
             produce(self.plan,out,self.root/"out.json",self.root/"out.srt",width=320,height=240)
