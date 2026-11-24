@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from demo import render, validate_clip, sha256, RenderError
+from demo import render, validate_clip, sha256, RenderError, parse_frame_rate
 
 class ProductionError(ValueError):
     pass
@@ -70,9 +70,12 @@ def execute(args, timeout=180):
         raise ProductionError("Local media command failed: "+p.stderr[-500:])
     return p.stdout
 
-def probe(path):
-    return json.loads(execute(["ffprobe","-v","error","-show_entries",
-        "format=duration:stream=codec_type,codec_name,width,height","-of","json",str(path)],30))
+def probe(path, *, count_frames=False):
+    args=["ffprobe","-v","error"]
+    if count_frames:
+        args.append("-count_frames")
+    return json.loads(execute(args+["-show_entries",
+        "format=duration:stream=codec_type,codec_name,width,height,r_frame_rate,nb_read_frames","-of","json",str(path)],180 if count_frames else 30))
 
 def audio_duration(path):
     if not 0<path.stat().st_size<=32*1024*1024:
@@ -143,20 +146,28 @@ def produce(manifest,output,receipt,captions,*,width=720,height=1280,fps=30):
                 shutil.copyfile(base,final)
             # Decode every stream, not merely inspect a container header.
             execute(["ffmpeg","-nostdin","-v","error","-xerror","-i",str(final),"-map","0:v:0","-map","0:a:0","-f","null","-"])
-            info=probe(final)
+            info=probe(final,count_frames=True)
             streams=info.get("streams",[])
             video=next((s for s in streams if s.get("codec_type")=="video"),{})
             audio=next((s for s in streams if s.get("codec_type")=="audio"),{})
             actual=float(info.get("format",{}).get("duration",0))
             if video.get("codec_name")!="h264" or audio.get("codec_name")!="aac" or video.get("width")!=width or video.get("height")!=height or not math.isfinite(actual) or abs(actual-elapsed)>1:
                 raise ProductionError("Final media proof failed")
+            observed_fps=parse_frame_rate(video.get("r_frame_rate"))
+            try:
+                decoded_frames=int(video.get("nb_read_frames",0))
+            except (TypeError,ValueError) as exc:
+                raise ProductionError("Final decoded frame count unavailable") from exc
+            if decoded_frames<=0 or decoded_frames!=baseproof["output"]["decoded_frames"] or abs(observed_fps-fps)>0.001:
+                raise ProductionError("Final frame contract differs from verified base render")
             srt=tmp/"captions.srt"
             srt.write_text("".join(f"{i}\n{timestamp(a)} --> {timestamp(b)}\n{c}\n\n" for i,(a,b,c) in enumerate(cues,1)),encoding="utf-8")
             proof={"schema":"makevideo/native-production-receipt/v1","state":"VERIFIED_LOCAL_RENDER",
                    "project":plan["project"],"manifest_sha256":plan["manifest_sha256"],
                    "base_continuity_fingerprint":baseproof["continuity_fingerprint"],
                    "output_sha256":sha256(final),"captions_sha256":sha256(srt),"duration_s":actual,
-                   "width":width,"height":height,"fps":fps,"video_codec":"h264","audio_codec":"aac",
+                   "width":width,"height":height,"fps":observed_fps,"decoded_frames":decoded_frames,
+                   "full_decode":True,"output_bytes":final.stat().st_size,"video_codec":"h264","audio_codec":"aac",
                    "narration":[{"sha256":sha256(p),"start_s":s,"duration_s":d} for p,s,d in voices],
                    "rights_status":"CREATOR_REPORTED","publish_authority":False,"release_authority":False,
                    "limitations":["Local edit, not generated cinematic footage","Captions are shot-timed, not word-aligned","Human audiovisual review and asset rights verification still required"]}
