@@ -32,7 +32,7 @@ permissions:
 jobs:
   static-studio:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -59,7 +59,8 @@ jobs:
       - name: Generate cross-repo MakeImage PNG and receipt from pinned source
         run: |
           git clone --quiet https://github.com/jussray/make-image.git /tmp/makeimage-source
-          git -C /tmp/makeimage-source checkout --quiet 7d00e540b36269d4533252544fb15a15563b3876
+          git -C /tmp/makeimage-source checkout --quiet f1317ae0d35e8b06276516aa00d362cfb946d701
+          test "$(git -C /tmp/makeimage-source rev-parse HEAD)" = "f1317ae0d35e8b06276516aa00d362cfb946d701"
           python3 -m pip install -r /tmp/makeimage-source/requirements.txt
           mkdir -p /tmp/makeimage-proof
           python3 /tmp/makeimage-source/demo.py --title "Cross-app verified scene" --subtitle "Original local composite" --width 640 --height 360 --output /tmp/makeimage-proof/scene.png --receipt /tmp/makeimage-proof/scene.receipt.json
