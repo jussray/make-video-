@@ -1,0 +1,21 @@
+{
+  "schema": "juss/ai-crawler-contract@v1",
+  "project": "MakeVideo",
+  "canonical_origin": "https://makevideo.jussco.company/",
+  "policy": {
+    "search_discovery": "allow-bounded-public-surface",
+    "user_directed_retrieval": "allow-bounded-public-surface",
+    "model_training": "deny-by-default",
+    "bulk_dataset_collection": "deny-by-default"
+  },
+  "public_paths": [
+    "/",
+    "/assets/",
+    "/robots.txt",
+    "/sitemap.xml",
+    "/llms.txt",
+    "/crawlers.json"
+  ],
+  "authority": "read-only-public-surface",
+  "security": "Crawler metadata is not authentication or authorization."
+}
