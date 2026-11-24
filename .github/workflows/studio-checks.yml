@@ -6,6 +6,11 @@ on:
     paths:
       - 'assets/**'
       - 'demo.py'
+      - 'native_production.py'
+      - 'robots.txt'
+      - 'sitemap.xml'
+      - 'llms.txt'
+      - 'crawlers.json'
       - 'demo_tests/**'
       - 'scripts/**'
       - 'tests/**'
@@ -19,6 +24,11 @@ on:
     paths:
       - 'assets/**'
       - 'demo.py'
+      - 'native_production.py'
+      - 'robots.txt'
+      - 'sitemap.xml'
+      - 'llms.txt'
+      - 'crawlers.json'
       - 'demo_tests/**'
       - 'scripts/**'
       - 'tests/**'
@@ -35,6 +45,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Verify exact tested head
+        run: test "$(git rev-parse HEAD)" = "${{ github.sha }}"
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -42,7 +54,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - run: test -s dist/index.html && test -s dist/assets/recording.js
+      - run: test -s dist/index.html && test -s dist/assets/recording.js && test -s dist/assets/makeimageHandoff.js && test -s dist/robots.txt && test -s dist/sitemap.xml && test -s dist/llms.txt && test -s dist/crawlers.json
       - name: Install browser testing runtime
         run: |
           npm install --no-save --package-lock=false @playwright/test@1.61.1
