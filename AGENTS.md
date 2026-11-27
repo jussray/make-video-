@@ -17,3 +17,10 @@ This file is a repository instruction, not evidence that any agent, integration,
 
 ## Image → Code skill routing
 For any approved cinematic image, image/video handoff, graphics revision, or screenshot-parity request, read `.agents/skills/cinematic-image-to-code/SKILL.md` and use the existing project renderer and evidence gates. Render and compare **actual output** before claiming visual fidelity; title art or a storyboard is not game footage or continuous video. Preserve the original assets, explicit publication authority, and exact-head `main` verification.
+
+
+## Portfolio cinematic composition standard (staged)
+
+Use one cohesive cinematic composition across scene storyboard, render preview, timeline, shot pacing, soundtrack transitions, export UI and animations; browser animatic output is not a production provider-rendered video.
+
+Preserve product-specific approved original design references and local instructions; Figma mockups are scaffolding. Require exact-head desktop/mobile visual screenshots, interaction and keyboard, reduced-motion and performance checks before a PASS. Keep runtime adoption, source changes, merges, deployment, publication, and spending as independent evidence and approval gates. No changes to auth, payment, data, agent authority, privacy or working game controls without separate scope. Draft reference: `jussray/founder-control-room/skills/cinematic-composition/SKILL.md` on `feat/cinematic-composition-contract-20261104`.
